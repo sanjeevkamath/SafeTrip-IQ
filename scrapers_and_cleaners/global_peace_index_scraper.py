@@ -1,1 +1,0 @@
-# Global Peace Index Scraper
