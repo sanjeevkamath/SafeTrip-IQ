@@ -20,6 +20,8 @@ def download_xml_file(dir_path : str):
         print(f"Error downloading file: {response.status_code}")
 
 def create_df(path_to_xml):
+    '''create a pandas df in the form of {country_id: [], country_advisory: []}.   
+    return the df.'''
     try:
         xml_data = open(path_to_xml, 'r').read()  
     except FileNotFoundError:
@@ -44,12 +46,19 @@ def create_df(path_to_xml):
     return df
     
 def df_to_json(df : pd.DataFrame, destination_dir : str) -> None:
+    '''convert a pandas df into json, saving to destination_dir'''
     json_path = os.path.join(destination_dir, "travel_advisory.json")
     json_string = df.to_json(json_path, orient='records', indent=4)
     print(f'succesfully saved json file to {destination_dir}')
 
 
 def create_json(data_dir : str, destination_dir : str) -> None:
+    '''create a json of the travel advisory, saving it into destination dir.
+    
+    params: data_dir- where the raw data will be saved to
+    destination_dir- where the cleaned json will be saved to
+    '''
+
     download_xml_file(data_dir)
     xml_path = os.path.join(data_dir, "tavel_state_raw.xml")
     df = create_df(xml_path)
