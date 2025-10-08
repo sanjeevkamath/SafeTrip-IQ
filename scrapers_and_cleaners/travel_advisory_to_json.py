@@ -2,6 +2,7 @@ import requests
 import xml.etree.ElementTree as ET
 import pandas as pd
 import os
+import json
 
 
 def download_xml_file(dir_path : str):
@@ -18,40 +19,43 @@ def download_xml_file(dir_path : str):
     else:
         print(f"Error downloading file: {response.status_code}")
 
-# def create_df(path_to_xml):
-#     xml_data = open(path_to_xml, 'r').read()  
-#     root = ET.XML(xml_data)  
+def create_df(path_to_xml):
+    try:
+        xml_data = open(path_to_xml, 'r').read()  
+    except FileNotFoundError:
+        print(f'No xml file found at {path_to_xml}')
+        raise FileNotFoundError
+
+    root = ET.XML(xml_data)  
+    country_id = []
+    country_advisory = []
+    tree = ET.parse('raw_datasets/tavel_state_raw.xml')  
+    root = tree.getroot()   
+    channel_root = root.find('channel')
+    for element in channel_root.findall('item'):
+        try: 
+            country_id.append(element.find('category[@domain="Country-Tag"]').text)
+            country_advisory.append(element.find('category[@domain="Threat-Level"]').text)
+        except Exception:
+            print("error while reading element with tag: " + element.tag)
+
+
+    df = pd.DataFrame({"country_id" : country_id, "country_advisory" : country_advisory})  
+    return df
     
-#     country_name = []
-#     country_id = []
-#     country_advisory = []
-#     for i, child in enumerate(root):
-#         print
-#         country_name.append([subchild.text for subchild in child])
-#         country_id.append(child.tag)
-#         country_advisory.append()
-
-#     df = pd.DataFrame(data).T  
-#     df.columns = cols  
-    
-
-download_xml_file("raw_datasets")
-# create_df('downloaded_file.xml')
-
-# xml_data = open('downloaded_file.xml', 'r').read()  
-# tree = ET.parse('../raw_datasets/downloaded_file.xml')  
-# root = tree.getroot()   
-# channel_root = root.find('channel')
+def df_to_json(df : pd.DataFrame, destination_dir : str) -> None:
+    json_path = os.path.join(destination_dir, "travel_advisory.json")
+    json_string = df.to_json(json_path, orient='records', indent=4)
+    print(f'succesfully saved json file to {destination_dir}')
 
 
-# count = 0
-# for element in channel_root.findall('item'):
-#     try: 
-#         print(element.find('category[@domain="Country-Tag"]').text)
-#         count += 1
-#     except Exception:
-#         print(element.tag)
+def create_json(data_dir : str, destination_dir : str) -> None:
+    download_xml_file(data_dir)
+    xml_path = os.path.join(data_dir, "tavel_state_raw.xml")
+    df = create_df(xml_path)
+    df_to_json(df, destination_dir)
+    print(f'succesfully downloaded {xml_path} to {destination_dir}')
 
+create_json("raw_datasets", "cleaned_data")
 
-# print (count)
 

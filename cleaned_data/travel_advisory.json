@@ -1,0 +1,838 @@
+[
+    {
+        "country_id":"TP",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MV",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"EK",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MA",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"AY",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SL",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"NP",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"AM",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BO",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"MX",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CG",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"AE",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CB",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"TH",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SY",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"IZ",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"RW",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"LY",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"EG",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"NI",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"HA",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"MR",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"LE",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"IN",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"RM",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MZ",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"DR",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"PL",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"QA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"JM",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BR",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"FR",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"KS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MT",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SF",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"IT",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BE",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"LS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NH",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AJ",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"PE",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"JA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SO",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"GM",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SP",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BM",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"VE",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"GY",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"UK",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"RS",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"RP",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"UY",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CU",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"TD",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"PA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"ID",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"KN",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"PP",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"BY",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"BP",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"EZ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"UG",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"MO",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"KG",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BG",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"CO",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"UV",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"RI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GH",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"ES",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"KU",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BF",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"YM",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"IR",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"AN",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"GW",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"TT",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"NG",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"BX",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"CD",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"KE",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GG",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"WS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"OD",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"PK",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"DJ",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SN",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TK",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"PO",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TX",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NO",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MG",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"FM",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"CI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"A2",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MK",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"CY",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AF",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"NZ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AL",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GT",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"BH",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CT",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"WA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CM",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GB",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"VM",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NU",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"BK",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GV",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CS",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"HO",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"VC",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"TV",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"KR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TN",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"FP",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"FJ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"KV",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MD",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CH",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MJ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"LA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"LO",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"UP",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"GJ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BD",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TO",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MU",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GL",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"TS",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SG",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TU",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"GA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CE",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CF",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"UZ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AG",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"AO",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CV",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"PM",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"AR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"LT",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"DA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"JO",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BA",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"TZ",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"CJ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MP",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SE",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"EI",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"LG",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AU",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"IC",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BB",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"VI",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"DO",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"A3",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AV",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SC",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"ST",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AC",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"MH",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"HU",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"UC",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"AA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NN",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"A1",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"A1",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"A1",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"GR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"HR",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BU",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"RO",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"FI",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"NL",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"LH",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"PS",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"KZ",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"TW",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SI",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"SW",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"MY",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"EN",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"LU",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"WZ",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BT",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"BL",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"NC",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"CN",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BN",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"EC",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"IV",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"BC",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"ZA",
+        "country_advisory":"Level 1: Exercise Normal Precautions"
+    },
+    {
+        "country_id":"ER",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"ML",
+        "country_advisory":"Level 4: Do Not Travel"
+    },
+    {
+        "country_id":"LI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"ET",
+        "country_advisory":"Level 3: Reconsider Travel"
+    },
+    {
+        "country_id":"ZI",
+        "country_advisory":"Level 2: Exercise Increased Caution"
+    },
+    {
+        "country_id":"SU",
+        "country_advisory":"Level 4: Do Not Travel"
+    }
+]
