@@ -1,3 +1,9 @@
+'''PPI: Positive Peace Index
+   GTI: Global Terrorism Index
+   GPI: Global Peace Index'''
+
+
+
 import pandas as pd
 
 df = pd.read_csv("GTI.csv")    #change according to file name                     
