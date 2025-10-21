@@ -1,0 +1,4 @@
+This folder will be used to perform sentiment Analysis on the Travel Advisory Text imported from the unified data sets
+
+TODO:
+1. 
