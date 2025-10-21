@@ -1,3 +1,4 @@
+''' Politial Violence Events Excel to JSON Converter'''
 import pandas as pd
 from pathlib import Path
 import sys
