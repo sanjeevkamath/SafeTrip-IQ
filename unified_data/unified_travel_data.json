@@ -3400,23 +3400,6 @@
     "bert_input_text": "Country: Sao Tome and Principe. In 2024, there were 1 political violence events."
   },
   {
-    "iso2": "SU",
-    "country_name": "U.S.S.R.",
-    "country_name_norm": "U.S.S.R.",
-    "advisory_level": null,
-    "advisory_text": null,
-    "gpi_score": NaN,
-    "gti_score": NaN,
-    "events": NaN,
-    "events_year": NaN,
-    "numbeo_country": null,
-    "numbeo_crime_index": NaN,
-    "numbeo_safety_index": NaN,
-    "ppi_country": null,
-    "ppi_score": NaN,
-    "bert_input_text": "Country: U.S.S.R.."
-  },
-  {
     "iso2": "SV",
     "country_name": "El Salvador",
     "country_name_norm": "El Salvador",
