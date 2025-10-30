@@ -5,9 +5,8 @@ from datasets import load_dataset
 from transformers import BertTokenizerFast, BertForSequenceClassification, Trainer, TrainingArguments
 
 
-str = "level 3, re tr"
-str.split(" ")[1][0]
-dataset = load_dataset('csv', data_files={'train': 'train.csv', 'validation': 'val.csv'})
+
+dataset = load_dataset('csv', data_files={'train': 'train.csv', 'test': 'test.csv'})
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
 def tokenize(batch):
