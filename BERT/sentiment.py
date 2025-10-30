@@ -6,7 +6,7 @@ from transformers import BertTokenizerFast, BertForSequenceClassification, Train
 
 
 
-dataset = load_dataset('csv', data_files={'train': 'train.csv', 'test': 'test.csv'})
+dataset = load_dataset('csv', data_files={'train': 'BERT/train.csv', 'test': 'BERT/test.csv'})
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
 def tokenize(batch):
