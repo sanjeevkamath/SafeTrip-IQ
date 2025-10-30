@@ -1,1 +1,24 @@
 Clustering will be done here
+
+
+
+1. Clean Data -> get rid of missing Data
+
+
+
+Datasets to be used:
+
+Peace:
+GPI: Global Peace Index
+Ppi_score: Positive Peace Index
+numbeo_safety_index: Safety Index
+
+
+Terrorism:
+gti_score: Global Terrorism Score
+numbeo_crime_index: Crime Index
+
+
+
+Next Steps:
+Formula Creation for Peace, Terrorism
