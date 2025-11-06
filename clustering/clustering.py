@@ -60,4 +60,4 @@ for cluster_id in sorted(df['cluster'].unique()):
 summary = df.groupby('cluster')[X.columns].mean()
 summary
 
-df.to_csv("clustering/data/clustering_output.csv", index=False)
+df.to_csv("clustering/output/clustering_output.csv", index=False)
