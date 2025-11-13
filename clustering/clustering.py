@@ -38,7 +38,7 @@ plt.title("Elbow Method for Optimal k")
 plt.savefig("clustering/output/elbow_plot.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-k = 6  # adjust after looking at the elbow plot
+k = 5  # adjust after looking at the elbow plot
 model = KMeans(n_clusters=k, random_state=42)
 df['cluster'] = model.fit_predict(X)
 
