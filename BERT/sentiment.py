@@ -1,3 +1,4 @@
+from sklearn.metrics import classification_report, confusion_matrix
 from datasets import load_dataset, DatasetDict
 from transformers import (
     BertTokenizerFast, BertForSequenceClassification,
@@ -17,6 +18,14 @@ raw = load_dataset(
     "csv",
     data_files={"train": "BERT/train.csv", "test": "BERT/test.csv"}
 )
+
+def merge_labels(example):
+    if example["label"] == 4:
+        example["label"] = 3
+    return example
+
+raw["train"] = raw["train"].map(merge_labels)
+raw["test"]  = raw["test"].map(merge_labels)
 
 # 2) Normalize column names (strip whitespace)
 def strip_colnames(ds):
@@ -134,4 +143,15 @@ trainer = Trainer(
 )
 
 trainer.train()
+
 print(trainer.evaluate(eval_dataset=tokenized["test"]))
+
+
+preds = trainer.predict(tokenized["test"])
+logits, labels = preds.predictions, preds.label_ids
+y_pred = np.argmax(logits, axis=-1)
+
+
+
+print(classification_report(labels, y_pred))
+print(confusion_matrix(labels, y_pred))
