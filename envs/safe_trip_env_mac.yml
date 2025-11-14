@@ -1,0 +1,26 @@
+name: safe_trip
+channels:
+  - defaults
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - ca-certificates
+  - jinja2
+  - networkx
+  - numpy
+  - openssl
+  - packaging
+  - pandas
+  - pillow
+  - pip
+  - python=3.11
+  - pyyaml
+  - requests
+  - setuptools
+  - sympy
+  - tk
+  - tqdm
+  - wheel
+  - xz
+  - zlib
+prefix: /Users/ttavera/anaconda3/envs/safe_trip
