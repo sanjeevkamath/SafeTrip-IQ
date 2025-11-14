@@ -45,11 +45,19 @@ INPUT_URLS = [
 
     # Example:
     "https://web.archive.org/web/20250201014500/https://travel.state.gov/_res/rss/TAsTWs.xml",
-    "https://web.archive.org/web/20180124025525/https://travel.state.gov/_res/rss/TAsTWs.xml"
+    "https://web.archive.org/web/20180124025525/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20180627054211/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20180623062509/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20181207085201/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20190220104217/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20190424115939/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20190628053232/https://travel.state.gov/_res/rss/TAsTWs.xml",
+    "https://web.archive.org/web/20190725011802/https://travel.state.gov/_res/rss/TAsTWs.xml"
+    
 
     # Add more URLs if needed
 ]
-OUTPUT_FILE = "BERT/wayback/old_advisories.txt"  # Change this to your desired output file path
+OUTPUT_FILE = "BERT/wayback/old_advisories_minimal.txt"  # Change this to your desired output file path
 # --- END USER CONFIGURABLE SECTION ---
 
 def main():
@@ -60,6 +68,8 @@ def main():
     with open(OUTPUT_FILE, "w", encoding="utf-8") as out_file:
         for url in INPUT_URLS:
             xml_text = fetch_xml(url)
+
+            
 
             for idx, (title, desc_html, clean_text) in enumerate(extract_items(xml_text), start=1):
                 out_file.write(f"### ITEM {idx} ###\n")

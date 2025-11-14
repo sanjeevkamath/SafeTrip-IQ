@@ -20,8 +20,6 @@ raw = load_dataset(
 )
 
 def merge_labels(example):
-    if example["label"] == 4:
-        example["label"] = 3
     return example
 
 raw["train"] = raw["train"].map(merge_labels)
