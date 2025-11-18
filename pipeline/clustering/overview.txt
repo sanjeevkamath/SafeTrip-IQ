@@ -11,13 +11,11 @@ Datasets to be used:
 Peace:
 GPI: Global Peace Index
 Ppi_score: Positive Peace Index
-numbeo_safety_index: Safety Index
 
 
 Terrorism:
 gti_score: Global Terrorism Score
-numbeo_crime_index: Crime Index
-
+Pvi_score: Political Violence Index
 
 
 Next Steps:

@@ -16,7 +16,7 @@ SEED = 42
 # 1) Load CSVs
 raw = load_dataset(
     "csv",
-    data_files={"train": "BERT/train.csv", "test": "BERT/test.csv"}
+    data_files={"train": "pipeline/BERT/train.csv", "test": "pipeline/BERT/test.csv"}
 )
 
 def merge_labels(example):
