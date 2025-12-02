@@ -29,5 +29,3 @@ df_scaled = pd.DataFrame(scaler.fit_transform(df_final[core_cols]), columns=core
 # Optional: Save results
 df_scaled['iso3'] = df['iso3']
 df_scaled.to_csv("clustering/data/clustering_ready.csv", index=False)
-
-

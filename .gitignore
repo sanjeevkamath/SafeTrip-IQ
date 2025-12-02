@@ -3,4 +3,5 @@ results/
 myenv/
 venv/
 .env/
+.env
 
