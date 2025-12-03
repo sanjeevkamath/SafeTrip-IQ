@@ -19,25 +19,24 @@ interface CountryScore {
 }
 
 export default function WorldMap() {
-    const [scores, setScores] = useState<Record<string, number>>({})
-    const [tooltipContent, setTooltipContent] = useState('')
+    const [countryData, setCountryData] = useState<Record<string, { score: number | null, flag_url: string | null, name: string }>>({})
+    const [hoveredCountry, setHoveredCountry] = useState<{ name: string, score: number | null, flag_url: string | null } | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
     useEffect(() => {
         fetch('/api/countries-scores')
             .then(res => res.json())
-            .then((data: CountryScore[]) => {
-                console.log('Loaded country scores:', data.length, 'countries')
-                console.log('Sample scores:', data.slice(0, 5))
-                const scoresMap: Record<string, number> = {}
+            .then((data: any[]) => {
+                const dataMap: Record<string, { score: number | null, flag_url: string | null, name: string }> = {}
                 data.forEach(country => {
-                    if (country.safe_trip_score !== null) {
-                        scoresMap[country.iso3] = country.safe_trip_score
+                    dataMap[country.iso3] = {
+                        score: country.safe_trip_score,
+                        flag_url: country.flag_url,
+                        name: country.name
                     }
                 })
-                console.log('Scores map keys (first 10):', Object.keys(scoresMap).slice(0, 10))
-                setScores(scoresMap)
+                setCountryData(dataMap)
                 setLoading(false)
             })
             .catch(err => {
@@ -48,8 +47,8 @@ export default function WorldMap() {
 
     // Color scale: red (0) -> yellow (5) -> green (10)
     const colorScale = scaleLinear<string>()
-        .domain([0, 5, 10])
-        .range(['#ef4444', '#f59e0b', '#22c55e'])
+        .domain([0, 4, 7, 10])
+        .range(['#8B0000', '#CC3300', '#CCCC00', '#008000'])
         .clamp(true)
 
     const getCountryColor = (geo: any): string => {
@@ -60,10 +59,10 @@ export default function WorldMap() {
         iso3 = iso3?.toUpperCase()
         if (!iso3) return '#d4d4d8' // gray for unknown
 
-        const score = scores[iso3]
-        if (score === undefined) return '#d4d4d8' // gray for no data
+        const data = countryData[iso3]
+        if (!data || data.score === null) return '#d4d4d8' // gray for no data
 
-        return colorScale(score)
+        return colorScale(data.score)
     }
 
     if (loading) {
@@ -89,38 +88,12 @@ export default function WorldMap() {
                     <Geographies geography={geoUrl}>
                         {({ geographies }: { geographies: any[] }) =>
                             geographies.map((geo: any) => {
-                                // Natural Earth uses ISO_A3, but it can be "-99" for disputed territories
-                                // Use ADM0_A3 or ISO_A3_EH as fallback which are more reliable
                                 let iso3 = geo.properties.ISO_A3
                                 if (!iso3 || iso3 === '-99' || iso3.startsWith('-')) {
                                     iso3 = geo.properties.ADM0_A3 || geo.properties.ISO_A3_EH
                                 }
                                 iso3 = iso3?.toUpperCase()
-                                const score = scores[iso3]
-
-                                // Debug log for countries without scores
-                                const countryName = geo.properties.NAME || geo.properties.name
-                                if (iso3 && score === undefined && ['FRANCE', 'NORWAY', 'SOMALIA'].includes(countryName?.toUpperCase())) {
-                                    console.log(`Missing score for ${countryName}:`, {
-                                        ISO_A3: geo.properties.ISO_A3,
-                                        ADM0_A3: geo.properties.ADM0_A3,
-                                        ISO_A3_EH: geo.properties.ISO_A3_EH,
-                                        computed_iso3: iso3,
-                                        all_properties: geo.properties
-                                    })
-                                }
-
-                                // Debug log for first few countries
-                                if (Object.keys(scores).length > 0 && Math.random() < 0.05) {
-                                    console.log('Map geo debug:', {
-                                        name: geo.properties.NAME || geo.properties.name,
-                                        ISO_A3: geo.properties.ISO_A3,
-                                        ADM0_A3: geo.properties.ADM0_A3,
-                                        computed_iso3: iso3,
-                                        has_score: score !== undefined,
-                                        score: score
-                                    })
-                                }
+                                const data = countryData[iso3]
 
                                 return (
                                     <Geography
@@ -140,16 +113,17 @@ export default function WorldMap() {
                                         }}
                                         onMouseEnter={() => {
                                             const name = geo.properties.NAME || geo.properties.name || 'Unknown'
-                                            const scoreText = score !== undefined
-                                                ? `Score: ${score.toFixed(1)}/10`
-                                                : 'No data'
-                                            setTooltipContent(`${name} - ${scoreText}`)
+                                            setHoveredCountry({
+                                                name,
+                                                score: data?.score ?? null,
+                                                flag_url: data?.flag_url ?? null
+                                            })
                                         }}
                                         onMouseLeave={() => {
-                                            setTooltipContent('')
+                                            setHoveredCountry(null)
                                         }}
                                         onClick={() => {
-                                            if (iso3 && scores[iso3] !== undefined) {
+                                            if (iso3 && data) {
                                                 router.push(`/country/${iso3}`)
                                             }
                                         }}
@@ -162,26 +136,48 @@ export default function WorldMap() {
             </ComposableMap>
 
             {/* Tooltip */}
-            {tooltipContent && (
-                <div className="absolute top-4 left-4 bg-black/80 text-white px-3 py-2 rounded-lg text-sm pointer-events-none">
-                    {tooltipContent}
+            {hoveredCountry && (
+                <div className="absolute top-4 left-4 bg-black/90 text-white px-4 py-3 rounded-lg text-sm pointer-events-none shadow-xl border border-gray-700 flex items-center gap-3 z-50">
+                    {hoveredCountry.flag_url && (
+                        <img
+                            src={hoveredCountry.flag_url}
+                            alt={`${hoveredCountry.name} flag`}
+                            className="w-8 h-6 object-cover rounded shadow-sm border border-gray-600"
+                        />
+                    )}
+                    <div>
+                        <div className="font-bold text-base">{hoveredCountry.name}</div>
+                        <div className={hoveredCountry.score !== null ?
+                            (hoveredCountry.score >= 7 ? "text-green-400" :
+                                hoveredCountry.score >= 4 ? "text-yellow-400" : "text-red-400")
+                            : "text-gray-400"}>
+                            {hoveredCountry.score !== null
+                                ? `Safety Score: ${hoveredCountry.score.toFixed(1)}/10`
+                                : 'No safety data available'}
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Legend */}
+            {/*         .range(['#8B0000', '#CC3300', '#CCCC00', '#008000']) */}
             <div className="flex items-center justify-center gap-4 mt-4 text-sm">
                 <span className="text-gray-600">Safety Score:</span>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ef4444' }}></div>
-                    <span className="text-gray-600">Low (0-3)</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#8B0000' }}></div>
+                    <span className="text-gray-600">Low (0-4)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b' }}></div>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#CC3300' }}></div>
                     <span className="text-gray-600">Medium (4-7)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#22c55e' }}></div>
-                    <span className="text-gray-600">High (8-10)</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#CCCC00' }}></div>
+                    <span className="text-gray-600">High (8-9.9)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#008000' }}></div>
+                    <span className="text-gray-600">Extremely High (10))</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded bg-gray-300"></div>

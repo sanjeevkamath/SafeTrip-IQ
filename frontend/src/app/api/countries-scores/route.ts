@@ -6,7 +6,7 @@ export async function GET() {
         // Fetch all countries
         const { data: countries, error: countriesError } = await supabase
             .from('countries')
-            .select('iso3, name')
+            .select('iso3, name, flag_url')
 
         if (countriesError) {
             console.error('Supabase error (countries):', countriesError)
@@ -32,6 +32,7 @@ export async function GET() {
             return {
                 iso3: country.iso3,
                 name: country.name,
+                flag_url: country.flag_url,
                 safe_trip_score: scoreRecord ? scoreRecord.safe_trip_score : null
             }
         })

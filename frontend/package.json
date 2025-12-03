@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:countries": "node test-all-countries.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
@@ -28,8 +29,10 @@
     "@types/react-dom": "^19",
     "@types/topojson-client": "^3.1.5",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.6",
+    "playwright": "^1.57.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -100,16 +100,25 @@ export default function SearchBar() {
                                     className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center text-black"
                                     onClick={() => handleSelect(result.iso3)}
                                 >
-                                    <div>
-                                        <div className="font-medium">{result.name}</div>
-                                        {result.continent && (
-                                            <div className="text-xs text-gray-500">{result.continent}</div>
+                                    <div className="flex items-center gap-3">
+                                        {result.flag_url && (
+                                            <img
+                                                src={result.flag_url}
+                                                alt={`${result.name} flag`}
+                                                className="w-8 h-6 object-cover rounded shadow-sm border border-gray-100"
+                                            />
                                         )}
+                                        <div>
+                                            <div className="font-medium">{result.name}</div>
+                                            {result.continent && (
+                                                <div className="text-xs text-gray-500">{result.continent}</div>
+                                            )}
+                                        </div>
                                     </div>
                                     {result.safe_trip_score !== null && (
                                         <span className={`text-xs px-2 py-1 rounded-full ${result.safe_trip_score >= 7 ? 'bg-green-100 text-green-800' :
-                                                result.safe_trip_score >= 4 ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-red-100 text-red-800'
+                                            result.safe_trip_score >= 4 ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
                                             }`}>
                                             {result.safe_trip_score.toFixed(1)}
                                         </span>
