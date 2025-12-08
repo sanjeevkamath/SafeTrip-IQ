@@ -48,16 +48,25 @@ export default async function CountryPage({ params }: PageProps) {
             }
 
             if (typeof parsed === 'string') {
-                // If it's a string, it might be a comma-separated list
-                // and it definitely has unicode decoded now.
-                // We split by comma to separate items.
+                // Check for semicolons first as they are a stronger delimiter in this dataset
+                if (parsed.includes(';')) {
+                    return parsed.split(';').map(s => s.trim()).filter(s => s.length > 0)
+                }
+                // Fallback to comma splitting
                 return parsed.split(',').map(s => s.trim()).filter(s => s.length > 0)
             }
 
             return [String(parsed)]
         } catch (e) {
             // If parsing fails, treat as plain string
-            return [field]
+            if (field.includes(';')) {
+                return field.split(';').map(s => s.trim()).filter(s => s.length > 0)
+            }
+            // If no semicolons, check for commas but be careful purely splitting by comma can be risky for some text, 
+            // but consistent with previous behavior for lists.
+            // Ideally we only split if it looks like a list. 
+            // For now, let's keep the semicolon check as the primary fix and comma as secondary.
+            return field.split(',').map(s => s.trim()).filter(s => s.length > 0)
         }
     }
 
