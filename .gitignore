@@ -2,6 +2,7 @@ results/
 
 myenv/
 venv/
+.env/
 .env
 
 *.pyc
