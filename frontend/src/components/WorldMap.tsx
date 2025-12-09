@@ -65,6 +65,22 @@ export default function WorldMap() {
         return colorScale(data.score)
     }
 
+    const [position, setPosition] = useState({ coordinates: [0, 0], zoom: 1 })
+
+    const handleZoomIn = () => {
+        if (position.zoom >= 4) return
+        setPosition(pos => ({ ...pos, zoom: pos.zoom * 1.5 }))
+    }
+
+    const handleZoomOut = () => {
+        if (position.zoom <= 1) return
+        setPosition(pos => ({ ...pos, zoom: pos.zoom / 1.5 }))
+    }
+
+    const handleMoveEnd = (position: { coordinates: [number, number], zoom: number }) => {
+        setPosition(position)
+    }
+
     if (loading) {
         return (
             <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-xl">
@@ -75,6 +91,23 @@ export default function WorldMap() {
 
     return (
         <div className="w-full relative">
+            <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
+                <button
+                    onClick={handleZoomIn}
+                    className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 text-gray-700 font-bold border border-gray-200"
+                    aria-label="Zoom in"
+                >
+                    +
+                </button>
+                <button
+                    onClick={handleZoomOut}
+                    className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 text-gray-700 font-bold border border-gray-200"
+                    aria-label="Zoom out"
+                >
+                    −
+                </button>
+            </div>
+
             <ComposableMap
                 projectionConfig={{
                     scale: 147
@@ -84,7 +117,13 @@ export default function WorldMap() {
                     height: 'auto'
                 }}
             >
-                <ZoomableGroup>
+                <ZoomableGroup
+                    zoom={position.zoom}
+                    center={position.coordinates as [number, number]}
+                    onMoveEnd={handleMoveEnd}
+                    minZoom={1}
+                    maxZoom={4}
+                >
                     <Geographies geography={geoUrl}>
                         {({ geographies }: { geographies: any[] }) =>
                             geographies.map((geo: any) => {
@@ -161,8 +200,8 @@ export default function WorldMap() {
 
             {/* Legend */}
             {/*         .range(['#8B0000', '#CC3300', '#CCCC00', '#008000']) */}
-            <div className="flex items-center justify-center gap-4 mt-4 text-sm">
-                <span className="text-gray-600">Safety Score:</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-sm px-4">
+                <span className="text-gray-600 font-medium">Safety Score:</span>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: '#8B0000' }}></div>
                     <span className="text-gray-600">Low (0-4)</span>
@@ -177,13 +216,12 @@ export default function WorldMap() {
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded" style={{ backgroundColor: '#008000' }}></div>
-                    <span className="text-gray-600">Extremely High (10))</span>
+                    <span className="text-gray-600">Extremely High (10)</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded bg-gray-300"></div>
                     <span className="text-gray-600">No Data</span>
                 </div>
-            </div>
-        </div>
+            </div>        </div>
     )
 }

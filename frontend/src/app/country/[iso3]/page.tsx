@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import SafetyScoreDetails from '@/components/SafetyScoreDetails'
 
 interface PageProps {
     params: {
@@ -138,6 +139,10 @@ export default async function CountryPage({ params }: PageProps) {
                                             style={{ width: `${(score.safe_trip_score / 10) * 100}%` }}
                                         ></div>
                                     </div>
+                                    <SafetyScoreDetails
+                                        bertScore={score.bert_score}
+                                        clusteringScore={score.clustering_score}
+                                    />
                                 </div>
                             )}
                         </div>
