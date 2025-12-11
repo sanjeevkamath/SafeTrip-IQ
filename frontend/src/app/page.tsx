@@ -1,5 +1,11 @@
 import SearchBar from '@/components/SearchBar'
 import WorldMap from '@/components/WorldMap'
+import { Analytics } from "@vercel/analytics/next"
+
+export const metadata = {
+  title: 'SafeTrip IQ - Your intelligent travel companion',
+  description: 'Explore travel safety information and cultural insights for destinations worldwide.',
+};
 
 export default function Home() {
   return (
@@ -22,6 +28,7 @@ export default function Home() {
           <WorldMap />
         </div>
       </div>
+      <Analytics />
     </main>
   )
 }
