@@ -23,11 +23,3 @@ for _, row in df.iterrows():
         "gti": float(row["gti_score"]),
         "pvi": float(row["pvi_score"])
     }).execute()
-
-experience_level = 'cracked'
-
-
-if experience_level != 'cracked':
-    print("You need to lock in")
-else:
-    print("Congratulations, you're all set!")

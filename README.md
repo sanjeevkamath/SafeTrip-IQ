@@ -4,6 +4,8 @@ ML-based travel advisory project for Gator AI. A Next.js website reads country i
 
 The project is being made reproducible before introducing containers and AWS deployment. See the [production roadmap](docs/production-roadmap.md), [security evidence](docs/phase-0-security.md), and [baseline walkthrough](docs/phase-1-baseline.md).
 
+The [repository guide](docs/repository-guide.md) explains the uv environment, current script responsibilities, and which datasets form the verified baseline.
+
 ## Reproduce the scoring baseline
 
 From the repository root, without credentials or a database:
@@ -15,9 +17,10 @@ python3 -m unittest discover -s tests -v
 
 These checks reproduce 212 captured scores. They verify historical behavior, not the accuracy of travel advice.
 
-For the Python pipeline, install uv and use Python 3.11:
+For the Python pipeline, install standalone uv (`brew install uv` on macOS). uv supplies Python 3.11; Conda is not required:
 
 ```sh
+uv python install 3.11
 uv sync --frozen
 uv run --frozen python -m scripts.verify_baseline --with-clustering
 ```
@@ -46,13 +49,15 @@ Existing ingestion scripts can write to the configured database. Use the offline
 
 GitHub Actions runs `.github/workflows/ci.yml` for pull requests, pushes to `main`, and manual dispatch. Independent jobs check the website (Node 22) and the dependency-free Python baseline (Python 3.11). These jobs use no production secrets, model downloads, or retraining.
 
+The frontend job also blocks high/critical production dependency advisories. See the [dependency security record](docs/dependency-security.md) for the patch and remaining development-tool advisory.
+
 Run equivalent checks locally from the project root:
 
 ```sh
 bash scripts/check_ci.sh
 ```
 
-Use Node 22 and Python 3.11 to match CI. The script reinstalls frontend dependencies from the lockfile and uses dummy Supabase settings. It stops at the first failed command. This runs the commands locally; GitHub runs them on fresh Linux runners.
+Use Node 22 and standalone uv. The script selects uv-managed Python 3.11 in an isolated environment, reinstalls frontend dependencies from the lockfile, and uses dummy Supabase settings. It stops at the first failed command. This runs the commands locally; GitHub runs them on fresh Linux runners using its own Python setup action.
 
 After committing and pushing the workflow **and its referenced scripts, fixtures, and baseline manifest**, a push to `main` triggers CI automatically. Once the workflow is on the default branch, manually trigger it using an authenticated GitHub CLI:
 

@@ -37,6 +37,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install locked dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm run audit:production
       - name: Check TypeScript
         run: npx tsc --noEmit
       - name: Lint
