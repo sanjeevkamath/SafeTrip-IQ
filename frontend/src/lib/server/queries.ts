@@ -1,76 +1,29 @@
 import 'server-only'
-import { createClient } from '@supabase/supabase-js'
+import * as postgres from './postgres-queries'
+import * as supabase from './supabase-queries'
+export type { Country, Score, Culture } from './types'
 
-export type Country = {
-    iso3: string
-    iso2: string | null
-    name: string
-    continent: string | null
-    flag_url: string | null
-}
-export type Score = {
-    iso3: string
-    safe_trip_score: number | null
-    bert_score: number | null
-    clustering_score: number | null
-}
-export type Culture = {
-    iso3: string
-    overview: string | null
-    currency: string | null
-    language: string | null
-    cities: string | null
-    cultural_safety_notes: string | null
-    donts: string | null
-    dos: string | null
-    etiquette: string | null
-    food: string | null
-    greeting: string | null
-    religion: string | null
+function adapter() {
+    const backend = process.env.SAFETRIP_DB_BACKEND ?? 'supabase'
+    if (backend === 'postgres') return postgres
+    if (backend === 'supabase') return supabase
+    throw new Error('Unsupported database backend.')
 }
 
-// Public read role only. Privileged writer credentials never enter this module.
-function reader() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-    )
-}
-
-function requireSuccess(error: { code?: string } | null) {
-    if (error) {
-        console.error('Database read failed', { code: error.code })
+async function read<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+        return await operation()
+    } catch {
+        // Driver errors can contain SQL, connection details, or input data.
+        console.error('Database read failed')
         throw new Error('Travel data is temporarily unavailable.')
     }
 }
 
-export async function listCountryScores(query?: string) {
-    const db = reader()
-    let request = db.from('countries').select('iso3, iso2, name, continent, flag_url')
-    if (query !== undefined) request = request.ilike('name', `%${query}%`).limit(10)
-    const { data: countries, error } = await request.returns<Country[]>()
-    requireSuccess(error)
-    if (!countries?.length) return []
-    const { data: scores, error: scoresError } = await db.from('scores')
-        .select('iso3, safe_trip_score, bert_score, clustering_score')
-        .in('iso3', countries.map(country => country.iso3)).returns<Score[]>()
-    requireSuccess(scoresError)
-    const byCountry = new Map(scores?.map(score => [score.iso3, score]))
-    return countries.map(country => ({ ...country, safe_trip_score: byCountry.get(country.iso3)?.safe_trip_score ?? null }))
+export function listCountryScores(query?: string) {
+    return read(() => adapter().listCountryScores(query))
 }
 
-export async function getCountryDetails(iso3: string) {
-    const db = reader()
-    const { data: country, error } = await db.from('countries')
-        .select('iso3, iso2, name, continent, flag_url').eq('iso3', iso3).returns<Country[]>().maybeSingle()
-    requireSuccess(error)
-    if (!country) return null
-    const [{ data: score, error: scoreError }, { data: culture, error: cultureError }] = await Promise.all([
-        db.from('scores').select('iso3, safe_trip_score, bert_score, clustering_score').eq('iso3', iso3).returns<Score[]>().maybeSingle(),
-        db.from('culture').select('iso3, overview, currency, language, cities, cultural_safety_notes, donts, dos, etiquette, food, greeting, religion').eq('iso3', iso3).returns<Culture[]>().maybeSingle(),
-    ])
-    requireSuccess(scoreError)
-    requireSuccess(cultureError)
-    return { country, score, culture }
+export function getCountryDetails(iso3: string) {
+    return read(() => adapter().getCountryDetails(iso3))
 }

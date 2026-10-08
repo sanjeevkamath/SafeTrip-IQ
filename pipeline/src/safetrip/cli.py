@@ -27,15 +27,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     from safetrip.config import load_environment, resolve_path
     from safetrip import jobs
+    publisher = None
     try:
         load_environment()
         if resolve_path(args.output).exists():
             raise FileExistsError("Output already exists.")
         # Resolve writer configuration before expensive work, but only when requested.
-        client = None
         if args.write:
-            from safetrip.persistence.supabase import get_writer_client
-            client = get_writer_client()
+            from safetrip.persistence.publication import get_publisher
+            publisher = get_publisher()
         if args.command in {"ingest", "refresh"}:
             rows = jobs.ingest(args.input, args.iso_csv or os.environ.get("SAFETRIP_ISO_CSV"))
             if args.command == "refresh":
@@ -52,20 +52,17 @@ def main(argv=None):
         else:
             artifact = jobs.cluster_rows(args.input or os.environ.get("SAFETRIP_CLUSTERING_CSV", "data/baseline/clustering/clusters.csv"))
         jobs.save_json(args.output, artifact)
-        if client is not None:
-            from safetrip.persistence import repository
-            if args.command in {"ingest", "refresh"}:
-                repository.write_advisories(client, rows)
-            if args.command in {"score", "refresh"}:
-                repository.write_bert_scores(client, scores)
-            if args.command in {"seed-countries", "import-clusters"}:
-                repository.write_rows(client, "countries" if args.command == "seed-countries" else "clustering", artifact)
+        if publisher is not None:
+            publisher.publish(args.command, artifact)
         print("Artifact saved." + (" Intermediate data published; final scores are unchanged." if args.write else " No database access performed."))
         return 0
     except Exception as error:
         # SDK exceptions may include request URLs/credentials. Never echo them.
         print(f"Command failed ({type(error).__name__}). Check input files and configuration. Publication may be partial if --write was used.", file=sys.stderr)
         return 1
+    finally:
+        if publisher is not None:
+            publisher.close()
 
 
 if __name__ == "__main__":

@@ -15,6 +15,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build and exercise local containers without model or credentials
+        run: bash scripts/check_containers.sh
+      - name: Stop disposable containers
+        if: always()
+        run: docker compose down --volumes
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+      - name: Test migrations, development seeds, and database permissions
+        run: bash scripts/check_database.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Test website queries against PostgreSQL
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test:postgres
+      - name: Stop disposable database
+        if: always()
+        run: docker compose down --volumes
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15

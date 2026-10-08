@@ -1,5 +1,6 @@
 """Local-only model loading and CPU-compatible inference, without persistence."""
 from pathlib import Path
+import os
 from safetrip.config import resolve_path
 
 def load_model(model_path):
@@ -7,6 +8,9 @@ def load_model(model_path):
     model_path = Path(model_path)
     if not model_path.is_absolute():
         model_path = resolve_path(model_path)
+    if os.environ.get("SAFETRIP_MODEL_MANIFEST"):
+        from safetrip.inference.integrity import verify_model
+        verify_model(model_path, resolve_path(os.environ["SAFETRIP_MODEL_MANIFEST"]))
     print(f"[INFO] Loading model from {model_path}...")
     # The baseline includes the tokenizer. Do not silently download a different
     # one or load pickle-based training state when reproducing inference.

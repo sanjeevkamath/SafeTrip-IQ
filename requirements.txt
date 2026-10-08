@@ -104,6 +104,10 @@ pprintpp==0.4.0 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or 
     # via pycountry-convert
 propcache==0.5.4 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
     # via yarl
+psycopg==3.2.10 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
+    # via safetrip-iq
+psycopg-binary==3.2.10 ; (implementation_name != 'pypy' and platform_machine == 'arm64' and sys_platform == 'darwin') or (implementation_name != 'pypy' and platform_machine == 'x86_64' and sys_platform == 'linux')
+    # via psycopg
 pycountry==24.6.1 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
     # via
     #   pycountry-convert
@@ -162,6 +166,8 @@ scipy==1.17.1 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (p
     # via scikit-learn
 six==1.17.0 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
     # via python-dateutil
+sqlalchemy==2.1.4 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
+    # via safetrip-iq
 storage3==2.24.0 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
     # via supabase
 strenum==0.4.15 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')
@@ -194,9 +200,11 @@ typing-extensions==4.16.0 ; (platform_machine == 'arm64' and sys_platform == 'da
     # via
     #   anyio
     #   huggingface-hub
+    #   psycopg
     #   pydantic
     #   pydantic-core
     #   realtime
+    #   sqlalchemy
     #   torch
     #   typing-inspection
 typing-inspection==0.4.4 ; (platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'linux')

@@ -1,0 +1,98 @@
+# Local development only. These credentials are intentionally not production secrets.
+name: safetrip-iq-local
+
+services:
+  bootstrap:
+    image: postgres:17.11-bookworm
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: safetrip_local_only
+    volumes:
+      - ./db/local/bootstrap.sql:/bootstrap.sql:ro
+    entrypoint: ["psql", "-h", "db", "-U", "safetrip_admin", "-d", "safetrip", "-f", "/bootstrap.sql"]
+    user: postgres
+    restart: "no"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: pipeline/Dockerfile
+      target: migrate
+      platforms: ["linux/amd64"]
+    # The current Python lock supports Linux x86_64; emulate on Apple Silicon.
+    platform: linux/amd64
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    environment:
+      SAFETRIP_MIGRATION_URL: postgresql+psycopg://safetrip_migrator:migrator_local_only@db:5432/safetrip
+    restart: "no"
+
+  seed:
+    image: postgres:17.11-bookworm
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: writer_local_only
+    volumes:
+      - ./db/local/seed.sql:/seed.sql:ro
+    entrypoint: ["psql", "-h", "db", "-U", "safetrip_writer", "-d", "safetrip", "-f", "/seed.sql"]
+    user: postgres
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      SAFETRIP_DB_BACKEND: postgres
+      SAFETRIP_DATABASE_URL: postgresql://safetrip_reader:reader_local_only@db:5432/safetrip
+    ports:
+      - "127.0.0.1:3001:3000"
+    init: true
+
+  worker:
+    profiles: ["jobs"]
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: pipeline/Dockerfile
+      target: worker
+      platforms: ["linux/amd64"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SAFETRIP_DATABASE_URL: postgresql+psycopg://safetrip_writer:writer_local_only@db:5432/safetrip
+    volumes:
+      - worker_output:/output
+    init: true
+
+  db:
+    image: postgres:17.11-bookworm
+    environment:
+      POSTGRES_DB: safetrip
+      POSTGRES_USER: safetrip_admin
+      POSTGRES_PASSWORD: safetrip_local_only
+    # Only this Mac can reach the published port. Avoid the usual host port 5432.
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safetrip_admin -d safetrip"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    shm_size: 128mb
+
+volumes:
+  postgres_data:
+  worker_output:

@@ -5,7 +5,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 // Exercise the real query module with controlled database responses; no network.
-const source = readFileSync(new URL('../src/lib/server/queries.ts', import.meta.url), 'utf8')
+const source = readFileSync(new URL('../src/lib/server/supabase-queries.ts', import.meta.url), 'utf8')
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
 function queries(responses) {
     const exports = {}
