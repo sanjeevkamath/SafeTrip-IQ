@@ -4,6 +4,8 @@ ML-based travel advisory project for Gator AI. A Next.js website reads country i
 
 The project is being made reproducible before introducing containers and AWS deployment. See the [production roadmap](docs/production-roadmap.md), [security evidence](docs/phase-0-security.md), and [baseline walkthrough](docs/phase-1-baseline.md).
 
+The [repository guide](docs/repository-guide.md) explains the uv environment, current script responsibilities, and which datasets form the verified baseline.
+
 ## Reproduce the scoring baseline
 
 From the repository root, without credentials or a database:
