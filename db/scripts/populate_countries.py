@@ -1,19 +1,15 @@
-import os
 import pycountry
-from supabase import create_client
-from dotenv import load_dotenv
 import pycountry_convert as pc
+if __package__:
+    from .supabase_writer import get_writer_client
+else:
+    from supabase_writer import get_writer_client
 
 
 # -------------------------------------------------
 # Load environment variables
 # -------------------------------------------------
-load_dotenv("/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/SafeTrip-IQ/.env")
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("ANON_KEY")
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = get_writer_client()
 
 
 # -------------------------------------------------

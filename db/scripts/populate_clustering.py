@@ -1,20 +1,18 @@
 import pandas as pd
-from supabase import create_client
-from dotenv import load_dotenv
 import os
+from pathlib import Path
+if __package__:
+    from .supabase_writer import get_writer_client
+else:
+    from supabase_writer import get_writer_client
 
-# Explicitly load .env to avoid path issues
-load_dotenv(dotenv_path="/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/SafeTrip-IQ/.env")
+supabase = get_writer_client()
 
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("ANON_KEY")
-
-print("Loaded URL:", url)
-print("Loaded KEY:", key[:6] + "..." if key else None)
-
-supabase = create_client(url, key)
-
-df = pd.read_csv("pipeline/clustering/output/clustering_output.csv")
+root = Path(__file__).resolve().parents[2]
+input_path = Path(os.environ.get("SAFETRIP_CLUSTERING_CSV", "pipeline/clustering/output/clustering_output.csv"))
+if not input_path.is_absolute():
+    input_path = root / input_path
+df = pd.read_csv(input_path)
 
 for _, row in df.iterrows():
     supabase.table("clustering").upsert({

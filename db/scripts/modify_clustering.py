@@ -1,18 +1,9 @@
-import os
-from dotenv import load_dotenv
-from supabase import create_client
+if __package__:
+    from .supabase_writer import get_writer_client
+else:
+    from supabase_writer import get_writer_client
 
-# Load environment variables
-load_dotenv(dotenv_path="/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/SafeTrip-IQ/.env")
-
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("ANON_KEY")
-
-if not url or not key:
-    print("[ERROR] SUPABASE_URL or ANON_KEY not found in environment.")
-    exit(1)
-
-supabase = create_client(url, key)
+supabase = get_writer_client()
 
 def main():
     print("[INFO] Fetching all clustering records...")

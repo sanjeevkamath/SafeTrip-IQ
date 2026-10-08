@@ -1,31 +1,31 @@
 import os
+from pathlib import Path
 import torch
-import numpy as np
-from supabase import create_client
 from transformers import BertTokenizerFast, BertForSequenceClassification
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path="/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/SafeTrip-IQ/.env")
+if __package__:
+    from .supabase_writer import get_writer_client
+else:
+    from supabase_writer import get_writer_client
 
 # Configuration
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("ANON_KEY")
-MODEL_PATH = "results/checkpoint-189"  # Using the latest checkpoint
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MODEL_PATH = PROJECT_ROOT / "results/checkpoint-189"
 BATCH_SIZE = 16
 
 def get_supabase():
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.")
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return get_writer_client()
 
 def load_model(model_path):
+    model_path = Path(model_path)
+    if not model_path.is_absolute():
+        model_path = PROJECT_ROOT / model_path
     print(f"[INFO] Loading model from {model_path}...")
-    tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased") # Tokenizer usually from base or saved with model
-    # If the tokenizer was saved with the model, load it from there:
-    if os.path.exists(os.path.join(model_path, "tokenizer_config.json")):
-        tokenizer = BertTokenizerFast.from_pretrained(model_path)
-    
-    model = BertForSequenceClassification.from_pretrained(model_path)
+    # The baseline includes the tokenizer. Do not silently download a different
+    # one or load pickle-based training state when reproducing inference.
+    tokenizer = BertTokenizerFast.from_pretrained(model_path, local_files_only=True)
+    model = BertForSequenceClassification.from_pretrained(
+        model_path, local_files_only=True, use_safetensors=True
+    )
     return tokenizer, model
 
 def fetch_advisories(supabase):
@@ -41,13 +41,8 @@ def score_texts(texts, tokenizer, model, device):
         outputs = model(**inputs)
     
     logits = outputs.logits
-    # Assuming the model outputs logits for classes. 
-    # We need to know how to map logits to a "score".
-    # If it's a regression model (num_labels=1), the logit is the score.
-    # If it's classification (e.g. 0=Safe, 1=Unsafe), we might want the probability of "Unsafe" or a class index.
-    # Based on sentiment.py, it seems to be classification.
-    # Let's assume we want the class index as the score for now, or map it.
-    # The user schema says 'bert_score integer'.
+    # Training maps original labels 1,2,3,4 to class IDs 0,1,2,3.
+    # Preserve the class ID here; this is not a probability or a 0-10 score.
     
     predictions = torch.argmax(logits, dim=-1).cpu().numpy()
     return predictions
@@ -57,7 +52,7 @@ def main():
     print(f"[INFO] Using device: {device}")
 
     supabase = get_supabase()
-    tokenizer, model = load_model(MODEL_PATH)
+    tokenizer, model = load_model(os.environ.get("SAFETRIP_MODEL_PATH", str(MODEL_PATH)))
     model.to(device)
     model.eval()
 

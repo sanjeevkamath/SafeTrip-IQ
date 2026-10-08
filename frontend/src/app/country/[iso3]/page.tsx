@@ -58,7 +58,7 @@ export default async function CountryPage({ params }: PageProps) {
             }
 
             return [String(parsed)]
-        } catch (e) {
+        } catch {
             // If parsing fails, treat as plain string
             if (field.includes(';')) {
                 return field.split(';').map(s => s.trim()).filter(s => s.length > 0)
@@ -239,14 +239,14 @@ export default async function CountryPage({ params }: PageProps) {
 
                         {/* Etiquette & Customs */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                            {/* Do's */}
+                            {/* Do&apos;s */}
                             {dos.length > 0 && (
                                 <div className="bg-white rounded-2xl shadow-lg border-2 border-green-200 p-8">
                                     <h2 className="text-2xl font-bold mb-4 flex items-center gap-2 text-green-700">
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        Do's
+                                        Do&apos;s
                                     </h2>
                                     <ul className="space-y-3">
                                         {dos.map((item: string, idx: number) => (

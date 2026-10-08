@@ -1,0 +1,44 @@
+[project]
+name = "safetrip-iq"
+version = "0.1.0"
+description = "SafeTrip IQ data pipeline and reproducible scoring baseline"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "numpy==1.26.4",
+    "pandas==2.3.3",
+    "pycountry==24.6.1",
+    "pycountry-convert==0.7.2",
+    "python-dotenv==1.2.1",
+    "requests==2.32.5",
+    "scikit-learn==1.7.2",
+    "supabase==2.24.0",
+    "torch==2.8.0",
+    "transformers==4.49.0",
+]
+
+[project.optional-dependencies]
+research = [
+    "accelerate==1.11.0",
+    "beautifulsoup4==4.14.2",
+    "datasets==4.3.0",
+    "matplotlib==3.10.6",
+    "plotly>=6,<7",
+    "seaborn==0.13.2",
+]
+audit = ["psycopg[binary]==3.2.10"]
+
+[tool.uv]
+package = false
+environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
+# CPU Linux wheels avoid bringing CUDA into a batch inference environment.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]

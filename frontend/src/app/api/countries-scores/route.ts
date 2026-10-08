@@ -27,8 +27,8 @@ export async function GET() {
         }
 
         // Merge data
-        const results = countries.map((country: any) => {
-            const scoreRecord = scores?.find((s: any) => s.iso3 === country.iso3)
+        const results = countries.map((country) => {
+            const scoreRecord = scores?.find((s) => s.iso3 === country.iso3)
             return {
                 iso3: country.iso3,
                 name: country.name,

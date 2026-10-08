@@ -1,19 +1,21 @@
 # scripts/populate_travel_advisories.py
 
-import os
 import re
 import html
 import csv
+import os
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, Optional, List
 
 import requests
-import xml.etree.ElementTree as ET
-import xml.etree.ElementTree as ET
-from supabase import create_client, Client
 from dotenv import load_dotenv
-
-load_dotenv(dotenv_path="/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/SafeTrip-IQ/.env")
+import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET
+if __package__:
+    from .supabase_writer import get_writer_client
+else:
+    from supabase_writer import get_writer_client
 
 
 
@@ -21,7 +23,12 @@ load_dotenv(dotenv_path="/Users/sanjeevkamath/Documents/Projects/SafeTrip IQ/Saf
 # ---------- CONFIG ---------- #
 
 FEED_URL = "https://travel.state.gov/_res/rss/TAsTWs.xml"
-ISO_CSV_PATH = "db/scripts/wikipedia-iso-country-codes.csv"  # <-- put your CSV here
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / ".env", override=False)
+# This auxiliary file is not currently checked in; configure a source explicitly.
+ISO_CSV_PATH = Path(os.environ.get("SAFETRIP_ISO_CSV", "db/scripts/wikipedia-iso-country-codes.csv"))
+if not ISO_CSV_PATH.is_absolute():
+    ISO_CSV_PATH = PROJECT_ROOT / ISO_CSV_PATH
 
 
 # ---------- US COUNTRY CODE (FIPS-10/Travel.State) TO ISO3 ---------- #
@@ -418,9 +425,7 @@ def parse_feed(xml_text: str) -> List[dict]:
 # -------------------------------------------------------------------
 
 def get_supabase():
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["ANON_KEY"]
-    return create_client(url, key)
+    return get_writer_client()
 
 
 def upsert_travel_advisories(records: List[dict]):

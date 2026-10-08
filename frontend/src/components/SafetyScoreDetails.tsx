@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Shield, BarChart2, Hash } from 'lucide-react'
+import { ChevronDown, ChevronUp, BarChart2, Hash } from 'lucide-react'
 
 interface SafetyScoreDetailsProps {
     bertScore: number | null

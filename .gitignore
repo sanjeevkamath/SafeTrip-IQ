@@ -20,6 +20,9 @@ out/
 .env.local
 .env*.local
 
+# Private database audit exports and connection certificates
+.local/
+
 # macOS
 .DS_Store
 

@@ -1,0 +1,79 @@
+{
+  "checkpoint": "results/checkpoint-189",
+  "model_files": {
+    "config.json": {
+      "bytes": 919,
+      "sha256": "8e4eddfe4181a16dec7221fe7bc860376d317a4fb6ca4ccb2c24fd6b1ec9b879"
+    },
+    "model.safetensors": {
+      "bytes": 437964800,
+      "sha256": "650ac00e9796cc78ad3231dd48bff05cfb735b78cb54a957398fb0db4a34d990"
+    },
+    "tokenizer.json": {
+      "bytes": 711494,
+      "sha256": "8b79639ec74b46604e730f505186eaafb1006d2fd00f2c4930d168bb7f894680"
+    },
+    "tokenizer_config.json": {
+      "bytes": 1221,
+      "sha256": "1f92c93d2e31974acffab86d48e80a9357acb18c68346c5472ef1d12c72d5d77"
+    },
+    "vocab.txt": {
+      "bytes": 231508,
+      "sha256": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+    },
+    "special_tokens_map.json": {
+      "bytes": 125,
+      "sha256": "b6d346be366a7d1d48332dbc9fdf3bf8960b5d879522b7799ddba59e76237ee3"
+    }
+  },
+  "data_files": {
+    "pipeline/BERT/train.csv": {
+      "rows": 1107,
+      "columns": [
+        "label",
+        "text"
+      ],
+      "sha256": "c192849623a2f4f0aa86e175c8e0be7d092ff2ef63fc44564ed643b9e823bb03"
+    },
+    "pipeline/BERT/test.csv": {
+      "rows": 502,
+      "columns": [
+        "label",
+        "text"
+      ],
+      "sha256": "583fe59d9b27551fba0dc4f80908b15358d922da59cefb3bf4352cd047676913"
+    },
+    "pipeline/clustering/data/clustering_ready.csv": {
+      "rows": 169,
+      "columns": [
+        "gpi_score",
+        "ppi_score",
+        "gti_score",
+        "pvi_score",
+        "iso3"
+      ],
+      "sha256": "cf3aace8d0f0d7a0986b559cb6acc23107a8b0b82f2596668a3b6b88b0a68f26"
+    },
+    "pipeline/clustering/output/clustering_output.csv": {
+      "rows": 168,
+      "columns": [
+        "gpi_score",
+        "ppi_score",
+        "gti_score",
+        "pvi_score",
+        "iso3",
+        "cluster"
+      ],
+      "sha256": "e9e960d17a29de0f65eb80cf7ccc9557d59dc128727673a8a9b5ab8c85a3c998"
+    }
+  },
+  "label_mapping": {
+    "1": 0,
+    "2": 1,
+    "3": 2,
+    "4": 3
+  },
+  "label_mapping_source": "Current training script remaps sorted numeric labels; checkpoint stores only generic LABEL_n names.",
+  "training_code_matches_original_run": "not established",
+  "artifact_distribution": "Local checkpoint is ignored; external versioned artifact storage still pending."
+}

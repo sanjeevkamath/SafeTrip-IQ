@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         }
 
         // 2. Fetch scores for the found countries
-        const iso3s = countries.map((c: any) => c.iso3)
+        const iso3s = countries.map((c) => c.iso3)
         const { data: scores, error: scoresError } = await supabase
             .from('scores')
             .select('iso3, safe_trip_score')
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
         }
 
         // 3. Merge the data manually
-        const results = countries.map((country: any) => {
-            const scoreRecord = scores?.find((s: any) => s.iso3 === country.iso3)
+        const results = countries.map((country) => {
+            const scoreRecord = scores?.find((s) => s.iso3 === country.iso3)
             return {
                 iso3: country.iso3,
                 name: country.name,

@@ -6,7 +6,8 @@ import {
     ComposableMap,
     Geographies,
     Geography,
-    ZoomableGroup
+    ZoomableGroup,
+    type MapGeography
 } from 'react-simple-maps'
 import { scaleLinear } from 'd3-scale'
 
@@ -15,6 +16,7 @@ const geoUrl = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/m
 interface CountryScore {
     iso3: string
     name: string
+    flag_url: string | null
     safe_trip_score: number | null
 }
 
@@ -27,7 +29,7 @@ export default function WorldMap() {
     useEffect(() => {
         fetch('/api/countries-scores')
             .then(res => res.json())
-            .then((data: any[]) => {
+            .then((data: CountryScore[]) => {
                 const dataMap: Record<string, { score: number | null, flag_url: string | null, name: string }> = {}
                 data.forEach(country => {
                     dataMap[country.iso3] = {
@@ -51,7 +53,7 @@ export default function WorldMap() {
         .range(['#8B0000', '#CC3300', '#CCCC00', '#008000'])
         .clamp(true)
 
-    const getCountryColor = (geo: any): string => {
+    const getCountryColor = (geo: MapGeography): string => {
         let iso3 = geo.properties.ISO_A3
         if (!iso3 || iso3 === '-99' || iso3.startsWith('-')) {
             iso3 = geo.properties.ADM0_A3 || geo.properties.ISO_A3_EH
@@ -125,14 +127,14 @@ export default function WorldMap() {
                     maxZoom={4}
                 >
                     <Geographies geography={geoUrl}>
-                        {({ geographies }: { geographies: any[] }) =>
-                            geographies.map((geo: any) => {
+                        {({ geographies }: { geographies: MapGeography[] }) =>
+                            geographies.map((geo: MapGeography) => {
                                 let iso3 = geo.properties.ISO_A3
                                 if (!iso3 || iso3 === '-99' || iso3.startsWith('-')) {
                                     iso3 = geo.properties.ADM0_A3 || geo.properties.ISO_A3_EH
                                 }
                                 iso3 = iso3?.toUpperCase()
-                                const data = countryData[iso3]
+                                const data = iso3 ? countryData[iso3] : undefined
 
                                 return (
                                     <Geography

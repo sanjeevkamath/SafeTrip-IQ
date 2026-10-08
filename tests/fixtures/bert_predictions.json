@@ -1,0 +1,13 @@
+{
+  "purpose": "Synthetic behavioral regression inputs, not ground-truth risk assessments. Captured with existing local checkpoint, torch 2.2.2, transformers 4.49.0, CPU.",
+  "rows": [
+    {
+      "text": "Exercise normal precautions when visiting this country.",
+      "expected_class_id": 0
+    },
+    {
+      "text": "Do not travel due to armed conflict and kidnapping.",
+      "expected_class_id": 1
+    }
+  ]
+}
