@@ -14,7 +14,8 @@
     "start": "next start",
     "lint": "eslint",
     "audit:production": "npm audit --omit=dev --audit-level=high",
-    "test:countries": "node test-all-countries.js"
+    "test:countries": "node test-all-countries.js",
+    "test:queries": "node --test tests/queries.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
@@ -30,6 +31,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-simple-maps": "^3.0.0",
+    "server-only": "0.0.1",
     "topojson-client": "^3.1.0"
   },
   "devDependencies": {

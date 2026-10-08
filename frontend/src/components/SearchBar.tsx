@@ -15,6 +15,7 @@ type SearchResult = {
 export default function SearchBar() {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<SearchResult[]>([])
+    const [error, setError] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [showDropdown, setShowDropdown] = useState(false)
     const dropdownRef = useRef<HTMLDivElement>(null)
@@ -46,8 +47,10 @@ export default function SearchBar() {
 
     const fetchResults = async (searchQuery: string) => {
         setIsLoading(true)
+        setError(false)
         try {
             const res = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}`)
+            if (!res.ok) throw new Error("Search unavailable")
             if (res.ok) {
                 const data = await res.json()
                 setResults(data)
@@ -55,6 +58,9 @@ export default function SearchBar() {
             }
         } catch (error) {
             console.error('Search error:', error)
+            setError(true)
+            setResults([])
+            setShowDropdown(false)
         } finally {
             setIsLoading(false)
         }
@@ -89,6 +95,8 @@ export default function SearchBar() {
                     </div>
                 )}
             </div>
+
+            {error && <p role="alert" className="mt-2 text-red-700">Search is temporarily unavailable. Please try again.</p>}
 
             {showDropdown && (
                 <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">

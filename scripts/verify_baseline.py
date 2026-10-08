@@ -10,7 +10,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from pipeline.scoring import legacy_safety_score
+from safetrip.scoring.legacy import legacy_safety_score
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -41,7 +41,7 @@ def main():
     print(f"PASS: {len(fixture['rows'])} captured scores reproduced exactly, offline.")
     if args.with_model:
         import torch
-        from db.scripts.score_advisories import load_model, score_texts
+        from safetrip.inference.bert import load_model, score_texts
 
         model_path = args.model_path if args.model_path.is_absolute() else ROOT / args.model_path
         for name, expected in manifest["model_files"].items():
@@ -61,8 +61,8 @@ def main():
         import pandas as pd
         from sklearn.cluster import KMeans
 
-        inputs = pd.read_csv(ROOT / "pipeline/clustering/data/clustering_ready.csv")
-        saved = pd.read_csv(ROOT / "pipeline/clustering/output/clustering_output.csv")
+        inputs = pd.read_csv(ROOT / "data/baseline/clustering/features.csv")
+        saved = pd.read_csv(ROOT / "data/baseline/clustering/clusters.csv")
         features = ["gpi_score", "ppi_score", "gti_score", "pvi_score"]
         # Preserve the legacy fit population, including its one row without ISO3.
         predicted = KMeans(n_clusters=5, random_state=42, n_init="auto").fit_predict(inputs[features])

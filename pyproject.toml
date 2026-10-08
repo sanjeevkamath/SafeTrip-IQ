@@ -27,8 +27,19 @@ research = [
 ]
 audit = ["psycopg[binary]==3.2.10"]
 
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+safetrip = "safetrip.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pipeline/src/safetrip"]
+
 [tool.uv]
-package = false
+package = true
+required-version = ">=0.12.23"
 # Never select a Python interpreter supplied by an active Conda environment.
 python-preference = "only-managed"
 environments = [

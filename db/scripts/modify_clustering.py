@@ -3,9 +3,14 @@ if __package__:
 else:
     from supabase_writer import get_writer_client
 
-supabase = get_writer_client()
+
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Historical, non-idempotent cluster remapping. Never use for routine refreshes.")
+    parser.add_argument("--write", action="store_true", required=True)
+    parser.parse_args()
+    supabase = get_writer_client()
     print("[INFO] Fetching all clustering records...")
     # Fetch all rows
     response = supabase.table("clustering").select("*").execute()
