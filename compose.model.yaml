@@ -1,0 +1,10 @@
+# Optional local model mount: ingest/help/CI do not require the checkpoint.
+services:
+  worker:
+    volumes:
+      - type: bind
+        source: ./results/checkpoint-189
+        target: /models/checkpoint-189
+        read_only: true
+        bind:
+          create_host_path: false

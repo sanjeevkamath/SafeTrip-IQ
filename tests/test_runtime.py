@@ -17,7 +17,7 @@ FIXTURE = ROOT / "tests/fixtures/advisories.xml"
 
 class RuntimeTests(unittest.TestCase):
     def test_all_runtime_modules_import_without_optional_dependencies(self):
-        code = "import safetrip, pkgutil, importlib; [importlib.import_module(m.name) for m in pkgutil.walk_packages(safetrip.__path__, safetrip.__name__ + '.')]; import sys; assert not {'torch','transformers','requests','supabase','dotenv'} & sys.modules.keys()"
+        code = "import safetrip, pkgutil, importlib; [importlib.import_module(m.name) for m in pkgutil.walk_packages(safetrip.__path__, safetrip.__name__ + '.')]; import sys; assert not {'torch','transformers','requests','supabase','dotenv','sqlalchemy','psycopg'} & sys.modules.keys()"
         result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -75,3 +75,11 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             write_bert_scores(client, [{"iso3":"CAN"}, {"iso3":"ZZZ"}])
         client.table.return_value.upsert.assert_not_called()
+
+    def test_invalid_postgres_configuration_never_falls_back(self):
+        from safetrip.persistence.publication import get_publisher
+        for backend in ("postgres", "typo"):
+            with patch.dict("os.environ", {"SAFETRIP_DB_BACKEND": backend}, clear=True), patch("safetrip.persistence.supabase.get_writer_client") as supabase, patch("safetrip.persistence.postgres.PostgresPublisher", side_effect=ValueError("Invalid URL")):
+                with self.assertRaises(ValueError):
+                    get_publisher()
+                supabase.assert_not_called()

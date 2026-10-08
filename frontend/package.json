@@ -15,7 +15,9 @@
     "lint": "eslint",
     "audit:production": "npm audit --omit=dev --audit-level=high",
     "test:countries": "node test-all-countries.js",
-    "test:queries": "node --test tests/queries.test.mjs"
+    "test:queries": "node --test tests/queries.test.mjs",
+    "dev:local": "SAFETRIP_DB_BACKEND=postgres SAFETRIP_DATABASE_URL=postgresql://safetrip_reader:reader_local_only@127.0.0.1:55432/safetrip next dev",
+    "test:postgres": "node --test tests/postgres.integration.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
@@ -28,6 +30,7 @@
     "d3-zoom": "^3.0.0",
     "lucide-react": "^0.555.0",
     "next": "16.3.8",
+    "pg": "8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-simple-maps": "^3.0.0",
@@ -39,6 +42,7 @@
     "@types/d3-geo": "^3.1.0",
     "@types/d3-scale": "^4.0.9",
     "@types/node": "^20",
+    "@types/pg": "8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/topojson-client": "^3.1.5",
