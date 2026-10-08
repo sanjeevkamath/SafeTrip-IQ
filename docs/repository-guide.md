@@ -15,9 +15,32 @@ uv run --frozen python -m scripts.verify_baseline
 
 For research dependencies, use `uv sync --frozen --extra research`, then include `--extra research` when using `uv run`. Database audit utilities use the `audit` extra. Neither extra makes historical scripts safe to execute or guarantees that missing research inputs are available.
 
-The maintainer's existing `.venv` was created with a Python interpreter supplied by Conda. uv manages the packages in that isolated environment; Conda still supplies its base interpreter. Do not remove that Conda installation until `.venv` has been recreated with an independently installed Python 3.11 interpreter.
+The project uses uv-managed Python, independent of Conda. `python-preference = "only-managed"` in `pyproject.toml` prevents fallback to a Conda/system interpreter when selecting Python. The maintainer's `.venv` has been recreated with standalone CPython 3.11.17. Dependencies remain at their existing locked versions.
+
+On macOS, install standalone uv with `brew install uv`, then run `uv python install 3.11` and `uv sync --frozen`. If your shell still resolves uv inside a Conda installation, run `conda deactivate` (repeat for stacked environments) and use `/opt/homebrew/bin/uv` on Apple Silicon. Check `command -v uv`. No changes to global shell startup files are required by this project.
+
+To confirm the project's interpreter, run:
+
+```sh
+uv run --frozen python -c 'import sys; print(sys.executable); print(sys.base_prefix)'
+```
+
+The executable should be in `.venv`, and the base prefix should be in uv's managed Python directory. Select `.venv/bin/python` as the interpreter in your editor. If migrating an older checkout, move its Conda-backed `.venv` aside before syncing; changing configuration alone is not a substitute for verifying an existing environment.
+
+Database command-line utilities are separate from Python dependencies. On macOS, `brew install postgresql@17` supplies `pg_dump`, `psql`, and local test-server binaries. For a schema backup, pass `--pg-dump "$(brew --prefix postgresql@17)/bin/pg_dump"` to the existing backup script, using `uv run --frozen --extra audit python`. Installing these tools does not require enabling a background database service. The old Conda-based security tooling is no longer needed; private snapshots, certificates, and the isolated test database remain under `.local/`.
+
+See [uv's Python management documentation](https://docs.astral.sh/uv/concepts/python-versions/) for managed interpreter installation on other platforms.
 
 Basic CI tests use Python's standard library, so CI currently does not install the full uv environment or load model weights.
+
+### Standalone environment verification (2026-10-08)
+
+- Installed standalone Homebrew uv and uv-managed CPython 3.11.17; rebuilt `.venv` with all extras from the unchanged lockfile.
+- Verified core, research, and audit package imports. No retraining was performed.
+- With Conda removed from PATH and its selection variables unset, passed the full local CI script and the extended baseline: 212 final scores, two checkpoint predictions, and 168 cluster assignments.
+- Confirmed Homebrew `pg_dump` and `psql` version 17.11. No production database connection or background database service was needed.
+- Removed `.local/previous-conda-venv`, `.local/security-tools`, and `.local/conda-cache` after verification. Retained private exports, certificates, and isolated database files. System-wide Conda remains untouched for other projects.
+- Frontend installation reported 21 npm audit findings, including a critical finding for the direct `next` dependency. The subsequent [dependency patch](dependency-security.md) resolved the production findings and documents the remaining development-tool advisory separately.
 
 ## Code responsibilities
 

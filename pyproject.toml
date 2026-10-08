@@ -29,6 +29,8 @@ audit = ["psycopg[binary]==3.2.10"]
 
 [tool.uv]
 package = false
+# Never select a Python interpreter supplied by an active Conda environment.
+python-preference = "only-managed"
 environments = [
     "sys_platform == 'darwin' and platform_machine == 'arm64'",
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
