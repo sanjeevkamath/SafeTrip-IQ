@@ -37,15 +37,16 @@ For example, Afghanistan has components 3 and 4: `(2.5 + 2) / 2 = 2.25`. Canada 
 
 Multiplying by 2.5 was part of the BERT conversion, but reversing direction also matters: larger class IDs represent greater advisory severity, while larger displayed scores represent greater safety. This legacy rule does **not** span the full 0–10 range: the BERT component bottoms out at 2.5 and clustering at 2. The implementation preserves that behavior instead of silently rescaling existing results.
 
-`pipeline/scoring.py` contains this inferred rule. It returns `None` when both components are missing, an explicitly defined edge case absent from the snapshot. The function is currently an offline baseline; production writers have not been changed to publish recalculated scores.
+`pipeline/src/safetrip/scoring/legacy.py` now contains this inferred rule. It returns `None` when both components are missing, an explicitly defined edge case absent from the snapshot. The function is currently an offline baseline; production writers have not been changed to publish recalculated scores.
 
 ## Reproduce it yourself
 
 From the repository root:
 
 ```sh
-python3 -m scripts.verify_baseline
-python3 -m unittest discover -s tests -v
+uv sync --frozen
+uv run --frozen python -m scripts.verify_baseline
+uv run --frozen python -m unittest discover -s tests -v
 ```
 
 No credentials, network access, model downloads, or database writes are needed. The verifier checks frozen input hashes and every captured final score. The unit tests also cover missing and invalid components.
@@ -78,6 +79,6 @@ Clustering reproduces all 168 saved country cluster IDs using the frozen feature
 - The scraper's default ISO lookup file, `db/scripts/wikipedia-iso-country-codes.csv`, is missing. Its location can now be configured with `SAFETRIP_ISO_CSV`, but end-to-end fresh ingestion is not yet reproducible.
 - Historical preprocessing assets and training provenance are incomplete. Frozen-feature clustering reproduction is narrower than rebuilding the dataset from its upstream sources.
 - The production frontend build initially passed with the existing installation. The CI milestone subsequently verified a clean `npm ci`, TypeScript, lint, and build in an isolated macOS copy with dummy Supabase configuration. The first GitHub Linux run remains pending.
-- Some legacy ingestion scripts still execute work on import. Do not import or run them against production for testing. The verifier avoids those scripts.
+- At baseline capture, legacy ingestion scripts executed work on import. Phase 2 replaced runtime writers with explicit commands; historical research scripts still need care.
 
 The next milestone is basic CI and a clearer project structure, followed by a disposable local PostgreSQL environment. The baseline gives those refactors an explicit behavior to preserve. No production data was changed while capturing or verifying it.

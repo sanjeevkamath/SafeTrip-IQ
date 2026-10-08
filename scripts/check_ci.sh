@@ -3,10 +3,13 @@
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-# Use the project's managed Python without installing the full ML environment.
-uv run --isolated --no-project --managed-python --python 3.11 python -m unittest discover -s tests -v
-uv run --isolated --no-project --managed-python --python 3.11 python -m unittest discover -s db/tests -v
-uv run --isolated --no-project --managed-python --python 3.11 python -m scripts.verify_baseline
+# A disposable environment verifies the package without installing the ML stack.
+uv venv --clear --managed-python --python 3.11 .local/ci-python
+uv pip install --python .local/ci-python/bin/python --no-deps .
+.local/ci-python/bin/safetrip --help
+.local/ci-python/bin/python -m unittest discover -s tests -v
+.local/ci-python/bin/python -m unittest discover -s db/tests -v
+.local/ci-python/bin/python -m scripts.verify_baseline
 
 cd frontend
 export NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co
@@ -16,4 +19,5 @@ npm ci
 npm run audit:production
 npx tsc --noEmit
 npm run lint
+npm run test:queries
 npm run build

@@ -27,7 +27,7 @@
     }
   },
   "data_files": {
-    "pipeline/BERT/train.csv": {
+    "data/baseline/bert/train.csv": {
       "rows": 1107,
       "columns": [
         "label",
@@ -35,7 +35,7 @@
       ],
       "sha256": "c192849623a2f4f0aa86e175c8e0be7d092ff2ef63fc44564ed643b9e823bb03"
     },
-    "pipeline/BERT/test.csv": {
+    "data/baseline/bert/test.csv": {
       "rows": 502,
       "columns": [
         "label",
@@ -43,7 +43,7 @@
       ],
       "sha256": "583fe59d9b27551fba0dc4f80908b15358d922da59cefb3bf4352cd047676913"
     },
-    "pipeline/clustering/data/clustering_ready.csv": {
+    "data/baseline/clustering/features.csv": {
       "rows": 169,
       "columns": [
         "gpi_score",
@@ -54,7 +54,7 @@
       ],
       "sha256": "cf3aace8d0f0d7a0986b559cb6acc23107a8b0b82f2596668a3b6b88b0a68f26"
     },
-    "pipeline/clustering/output/clustering_output.csv": {
+    "data/baseline/clustering/clusters.csv": {
       "rows": 168,
       "columns": [
         "gpi_score",

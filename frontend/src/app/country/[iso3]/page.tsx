@@ -1,41 +1,20 @@
-import { supabase } from '@/lib/supabaseClient'
+import { getCountryDetails } from '@/lib/server/queries'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SafetyScoreDetails from '@/components/SafetyScoreDetails'
 
 interface PageProps {
-    params: {
+    params: Promise<{
         iso3: string
-    }
+    }>
 }
 
 export default async function CountryPage({ params }: PageProps) {
     const { iso3 } = await params
 
-    // Fetch country data
-    const { data: country, error: countryError } = await supabase
-        .from('countries')
-        .select('*')
-        .eq('iso3', iso3)
-        .single()
-
-    if (countryError || !country) {
-        notFound()
-    }
-
-    // Fetch score data
-    const { data: score } = await supabase
-        .from('scores')
-        .select('*')
-        .eq('iso3', iso3)
-        .single()
-
-    // Fetch culture data
-    const { data: culture } = await supabase
-        .from('culture')
-        .select('*')
-        .eq('iso3', iso3)
-        .single()
+    const details = await getCountryDetails(iso3)
+    if (!details) notFound()
+    const { country, score, culture } = details
 
     // Helper function to safely parse fields that might be JSON arrays or plain strings
     const parseField = (field: string | null | undefined): string[] => {
@@ -124,7 +103,7 @@ export default async function CountryPage({ params }: PageProps) {
                                 </div>
                             </div>
 
-                            {score && (
+                            {score && score.safe_trip_score !== null && (
                                 <div className="bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl border-2 border-gray-100 shadow-sm">
                                     <p className="text-sm font-semibold text-gray-600 mb-2">Safety Score</p>
                                     <div className="flex items-end gap-2">

@@ -31,7 +31,7 @@ Database command-line utilities are separate from Python dependencies. On macOS,
 
 See [uv's Python management documentation](https://docs.astral.sh/uv/concepts/python-versions/) for managed interpreter installation on other platforms.
 
-Basic CI tests use Python's standard library, so CI currently does not install the full uv environment or load model weights.
+CI installs the runtime package without dependencies and runs lightweight checks. It does not install the full ML environment or load model weights.
 
 ### Standalone environment verification (2026-10-08)
 
@@ -47,19 +47,19 @@ Basic CI tests use Python's standard library, so CI currently does not install t
 | Location | Current responsibility |
 | --- | --- |
 | `frontend/` | Deployed Next.js application; keep this path stable for Vercel |
-| `pipeline/scoring.py` | Pure reconstructed final-score rule, currently used for offline verification |
-| `db/scripts/score_advisories.py` | Local checkpoint loading and advisory inference; main command writes to the configured database |
-| `db/scripts/populate_*.py` | Legacy ingestion and publication scripts; some perform writes on import |
+| `pipeline/src/safetrip/` | Installable runtime package: ingestion, inference, scoring, persistence, orchestration, and CLI |
+| `db/scripts/score_advisories.py` | Compatibility wrapper for `safetrip score`; local artifact by default |
+| `db/scripts/populate_*.py` | Import-safe compatibility commands; publication requires `--write` |
 | `db/scripts/modify_clustering.py` | Historical one-time tier remapping; rerunning changes already mapped values |
 | `db/scripts/supabase_writer.py` | Backend credential validation and client creation |
 | `db/scripts/backup_schema.py`, `capture_data_baseline.py`, `check_writer_connection.py` | Security audit and read-only snapshot/connection utilities |
 | `db/security/` | Reviewed Phase 0 SQL and permission verification |
-| `pipeline/BERT/` | Training and historical advisory preparation; candidate for `research/` |
-| `pipeline/clustering/` | Feature preparation, model fitting, visualizations and datasets; candidate for separation into research and baseline inputs |
-| `pipeline/scrapers/` | Historical data preparation; preserve until dependencies and provenance are traced |
+| `research/bert/` | Explicit `train.py` experiment and historical advisory preparation |
+| `research/clustering/` | Explicit `fit.py` experiment plus preserved historical preprocessing and charts |
+| `research/legacy_data_preparation/` | Historical data preparation; preserve until dependencies and provenance are traced |
 | `scripts/`, `tests/`, `db/tests/` | Developer checks, score fixtures, credential tests, and isolated permission testing |
 
-Do not run legacy writer scripts as a cleanup verification step. The next extraction will give runtime code explicit entry points and remove import-time work.
+Runtime writers now have explicit commands and do no work on import. Historical research scripts retain their separately documented limitations.
 
 ## Data and model inventory
 
@@ -68,12 +68,12 @@ Do not run legacy writer scripts as a cleanup verification step. The next extrac
 | `tests/fixtures/legacy_scores.json` | Authoritative 212-row regression snapshot for the recovered score formula |
 | `tests/fixtures/bert_predictions.json` | Two captured behavioral predictions, not accuracy labels |
 | `docs/baseline/artifacts.json` | Hash manifest identifying the preserved model and datasets |
-| `pipeline/clustering/data/clustering_ready.csv` | Frozen feature input used by the clustering reproduction check |
-| `pipeline/clustering/output/clustering_output.csv` | Verified 168-country baseline output; raw cluster IDs, not final risk tiers |
-| `pipeline/clustering/data/clustering_output.csv`, `clustering_results.csv` | Byte-identical to each other, but different from the verified output above; retained pending provenance review |
-| `pipeline/clustering/data/old_data/` | Historical intermediate files; includes an empty `training.csv`; retained for the data review |
-| `pipeline/BERT/train.csv`, `test.csv` | Preserved training/test inputs with known text overlap; evaluation needs repair |
-| `pipeline/BERT/wayback/` | Historical source preparation and multiple dataset variants; no deletion based on similar names |
+| `data/baseline/clustering/features.csv` | Frozen feature input used by the clustering reproduction check |
+| `data/baseline/clustering/clusters.csv` | Verified 168-country baseline output; raw cluster IDs, not final risk tiers |
+| `research/clustering/data/clustering_output.csv`, `clustering_results.csv` | Byte-identical to each other, but different from the verified output above; retained pending provenance review |
+| `research/clustering/data/old_data/` | Historical intermediate files; includes an empty `training.csv`; retained for the data review |
+| `data/baseline/bert/train.csv`, `test.csv` | Preserved training/test inputs with known text overlap; evaluation needs repair |
+| `research/bert/wayback/` | Historical source preparation and multiple dataset variants; no deletion based on similar names |
 | `results/checkpoint-189/` | Ignored local model artifact, verified by manifest; requires separate distribution |
 | `.local/` | Ignored private audit exports, certificates, and local tooling; never publish this directory |
 
@@ -86,4 +86,12 @@ Do not run legacy writer scripts as a cleanup verification step. The next extrac
 - Remove the unused Next.js starter SVGs after checking tracked source references.
 - Remove the joke block from the clustering writer without changing its database operations.
 
-No dataset, checkpoint, scoring rule, deployment root, or database permission is changed by this cleanup. The next pass separates research from runtime code in small changes protected by CI.
+No dataset content, checkpoint, scoring rule, deployment root, or database permission changed in the initial cleanup.
+
+## Research separation
+
+Model development now lives in `research/`; the four verified CSVs live in `data/baseline/` with unchanged hashes. The baseline verifier, legacy clustering writer default, environment example, and manifest use the new paths. If a private environment explicitly sets `SAFETRIP_CLUSTERING_CSV` to the former default path, update it to `data/baseline/clustering/clusters.csv`.
+
+See `research/README.md` for explicit model entry points and the limits of the historical scripts. New training and clustering experiment outputs are isolated under timestamped `.local/research/` directories. Only import/help behavior and the historical baseline were verified; a new BERT training run was not performed.
+
+The runtime package extraction and typed server query changes are implemented. See [Phase 2](phase-2-runtime.md) for commands, tests, and remaining deployment verification.

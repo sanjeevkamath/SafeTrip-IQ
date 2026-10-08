@@ -6,13 +6,16 @@ The project is being made reproducible before introducing containers and AWS dep
 
 The [repository guide](docs/repository-guide.md) explains the uv environment, current script responsibilities, and which datasets form the verified baseline.
 
+Model experiments are in [research](research/README.md); frozen reference datasets are in [data/baseline](data/baseline/README.md). The installable runtime package is in `pipeline/src/safetrip/`; `db/scripts/` retains compatibility commands and audit utilities. See the [Phase 2 walkthrough](docs/phase-2-runtime.md).
+
 ## Reproduce the scoring baseline
 
 From the repository root, without credentials or a database:
 
 ```sh
-python3 -m scripts.verify_baseline
-python3 -m unittest discover -s tests -v
+uv sync --frozen
+uv run --frozen python -m scripts.verify_baseline
+uv run --frozen python -m unittest discover -s tests -v
 ```
 
 These checks reproduce 212 captured scores. They verify historical behavior, not the accuracy of travel advice.
@@ -43,11 +46,11 @@ npm run dev
 
 Use `npm run build` to check the production build. The public client requires read access to `countries`, `culture`, and `scores`. Backend credentials belong only in the ignored root `.env`; `.env.example` documents the settings. Never put a service-role credential in a `NEXT_PUBLIC_` variable.
 
-Existing ingestion scripts can write to the configured database. Use the offline verification commands above while learning; a complete local database setup remains a subsequent milestone.
+The `safetrip ingest`, `score`, and `refresh` commands create local artifacts by default; publication requires `--write`. Use the fixture examples in the Phase 2 walkthrough while learning; a complete local database setup remains a subsequent milestone.
 
 ## Continuous integration
 
-GitHub Actions runs `.github/workflows/ci.yml` for pull requests, pushes to `main`, and manual dispatch. Independent jobs check the website (Node 22) and the dependency-free Python baseline (Python 3.11). These jobs use no production secrets, model downloads, or retraining.
+GitHub Actions runs `.github/workflows/ci.yml` for pull requests, pushes to `main`, and manual dispatch. Independent jobs check the website (Node 22) and the lightweight Python package tests (Python 3.11). These jobs use no production secrets, model downloads, or retraining.
 
 The frontend job also blocks high/critical production dependency advisories. See the [dependency security record](docs/dependency-security.md) for the patch and remaining development-tool advisory.
 
@@ -57,7 +60,7 @@ Run equivalent checks locally from the project root:
 bash scripts/check_ci.sh
 ```
 
-Use Node 22 and standalone uv. The script selects uv-managed Python 3.11 in an isolated environment, reinstalls frontend dependencies from the lockfile, and uses dummy Supabase settings. It stops at the first failed command. This runs the commands locally; GitHub runs them on fresh Linux runners using its own Python setup action.
+Use Node 22 and standalone uv. The script installs the runtime package without ML dependencies into disposable `.local/ci-python` using uv-managed Python 3.11, reinstalls frontend dependencies from the lockfile, and uses dummy Supabase settings. It stops at the first failed command. This runs the commands locally; GitHub runs them on fresh Linux runners using its own Python setup action.
 
 After committing and pushing the workflow **and its referenced scripts, fixtures, and baseline manifest**, a push to `main` triggers CI automatically. Once the workflow is on the default branch, manually trigger it using an authenticated GitHub CLI:
 

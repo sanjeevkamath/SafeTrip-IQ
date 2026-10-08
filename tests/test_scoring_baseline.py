@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import unittest
 
-from pipeline.scoring import legacy_safety_score
+from safetrip.scoring.legacy import legacy_safety_score
 
 
 class LegacyScoreBaselineTests(unittest.TestCase):

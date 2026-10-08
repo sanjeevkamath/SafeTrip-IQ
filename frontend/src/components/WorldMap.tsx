@@ -23,12 +23,16 @@ interface CountryScore {
 export default function WorldMap() {
     const [countryData, setCountryData] = useState<Record<string, { score: number | null, flag_url: string | null, name: string }>>({})
     const [hoveredCountry, setHoveredCountry] = useState<{ name: string, score: number | null, flag_url: string | null } | null>(null)
+    const [error, setError] = useState(false)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
     useEffect(() => {
         fetch('/api/countries-scores')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("Map data unavailable")
+                return res.json()
+            })
             .then((data: CountryScore[]) => {
                 const dataMap: Record<string, { score: number | null, flag_url: string | null, name: string }> = {}
                 data.forEach(country => {
@@ -43,6 +47,7 @@ export default function WorldMap() {
             })
             .catch(err => {
                 console.error('Failed to load country scores:', err)
+                setError(true)
                 setLoading(false)
             })
     }, [])
@@ -82,6 +87,8 @@ export default function WorldMap() {
     const handleMoveEnd = (position: { coordinates: [number, number], zoom: number }) => {
         setPosition(position)
     }
+
+    if (error) return <p role="alert" className="p-8 text-center">Map data is temporarily unavailable. Please reload to try again.</p>
 
     if (loading) {
         return (
