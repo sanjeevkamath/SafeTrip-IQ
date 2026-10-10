@@ -5,7 +5,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY frontend/ ./
-RUN npm run build
+# Git omits an empty public directory; ensure clean checkouts can copy it below.
+RUN mkdir -p public && npm run build
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
