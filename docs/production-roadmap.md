@@ -77,11 +77,12 @@ Advisory refresh:
 Index/model refresh:
 
 - Treat GPI, GTI, and PPI as versioned annual releases, with explicit handling for revisions and release availability. Verify cadence independently for other sources such as PVI.
-- Rebuild clustering when an approved input release or methodology changes, rather than on each advisory refresh.
-- Persist feature order, imputer, scaler, fitted centroids, dataset version, and cluster-to-risk mapping together.
-- Define a documented safety axis with explicit feature direction and weights. Rank centroids along it with deterministic tie handling; cluster IDs themselves carry no risk meaning.
-- Assess how rankings change across model versions. A stable mapping within one version does not guarantee equivalent tiers after retraining or establish that the safety axis is valid.
+- Keep the existing clustering release frozen for this overhaul. Preserve available inputs, transformations, centroids, mapping, and checksums; document missing provenance and data age. Annual clustering retraining is outside the required scope because reconstructing its source data is unresolved.
+- Verify the existing cluster-to-risk mapping before importing the full dataset. Cluster IDs themselves carry no risk meaning. If rebuilding becomes feasible later, persist feature order, imputer, scaler, centroids, and an evaluated deterministic risk mapping as one versioned release.
+- Add a separate manually triggered BERT retraining workflow later: version the dataset and cleaner, resolve train/test overlap, evaluate against a trustworthy held-out set and current model, and explicitly promote an accepted checkpoint. Routine advisory refresh only runs inference.
 - Preserve immutable raw inputs. Add missing-data and score-bound checks.
+
+Missing-advisory decision: a successful complete refresh clears the absent country's advisory and BERT component. Clustering-only scores remain valid under the existing formula; neither component means NULL. A failed or empty feed preserves published data. See the [implemented policy and refresh lock](phase-4-missing-advisories.md).
 
 CI expansion:
 

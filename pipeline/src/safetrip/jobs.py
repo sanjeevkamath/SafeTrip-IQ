@@ -22,16 +22,48 @@ def validate_advisories(rows):
     return rows
 
 
-def ingest(input_path=None, iso_csv=None):
-    from safetrip.ingestion.advisories import fetch_feed_xml, load_iso3_mapping, map_records
-    xml = resolve_path(input_path).read_text() if input_path else fetch_feed_xml()
+def ingest(input_path=None, iso_csv=None, retain_raw=None):
+    from safetrip.ingestion.advisories import fetch_feed_bytes, load_iso3_mapping, map_records
+    xml = resolve_path(input_path).read_bytes() if input_path else fetch_feed_bytes()
+    if retain_raw is not None:
+        retain_raw(xml)  # Preserve exact bytes even if parsing subsequently fails.
     mapping = load_iso3_mapping(resolve_path(iso_csv)) if iso_csv else {}
     return validate_advisories(map_records(xml, mapping))
 
 
-def score(rows, model_path):
+def incremental_score(rows, model_path, publisher, metadata):
+    """Reuse only predictions whose text and inference provenance still match."""
+    from hashlib import sha256
+    from safetrip.inference.integrity import model_fingerprint
+    validate_advisories(rows)
+    metadata.update(model_version=model_fingerprint(resolve_path(model_path)),
+                    inference_version="bert-cpu-max256-v1")
+    cached = publisher.cached_predictions()
+    changed, reused = [], []
+    for row in rows:
+        old = cached.get(row["iso3"])
+        versions = (old.get("metadata") or {}) if old else {}
+        same_text = old and isinstance(old["cleaned_text"], str) and (
+            sha256(old["cleaned_text"].encode()).digest() ==
+            sha256(row["description_text"].encode()).digest())
+        if (same_text and old["status"] == "succeeded"
+                and type(old["bert_score"]) is int and 0 <= old["bert_score"] <= 3
+                and all(metadata.get(key) is not None and versions.get(key) == metadata[key]
+                        for key in ("model_version", "cleaning_version", "inference_version"))):
+            reused.append({key:old[key] for key in ("iso3", "cleaned_text", "bert_score", "last_run_id")})
+        else:
+            changed.append(row)
+    predictions = score(changed, model_path) if changed else []
+    metadata.update(predicted_count=len(predictions), reused_count=len(reused), advisory_count=len(rows))
+    return predictions, reused
+
+
+def score(rows, model_path, metadata=None):
     # Validation happens before loading the checkpoint or touching the database.
     validate_advisories(rows)
+    if metadata is not None:
+        from safetrip.inference.integrity import model_fingerprint
+        metadata["model_version"] = model_fingerprint(resolve_path(model_path))
     from safetrip.inference.bert import load_model, score_texts
     tokenizer, model = load_model(resolve_path(model_path))
     model.to("cpu").eval()

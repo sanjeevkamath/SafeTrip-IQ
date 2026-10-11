@@ -130,7 +130,7 @@ This wrapper selects Postgres with `safetrip_writer` explicitly, even if `.env` 
 
 Postgres publication uses one SQLAlchemy transaction per command and parameterized upserts with a table/column allowlist. A failed `refresh` rolls back both its advisory and BERT changes. Only supplied columns are updated, so country catalog imports preserve existing continent/flag values. The one-shot writer uses NullPool, a connection timeout, and a statement timeout; it disposes its engine on exit. Its URL requires the literal `safetrip_writer` username and `postgresql+psycopg` driver.
 
-**Final `scores` rows are still unchanged by worker refresh.** Transactional intermediate writes do not yet implement final-score publication, retries, run tracking, or overlap prevention. The output JSON is saved before publication and remains on failure; it is not proof of committed database data.
+**Final `scores` rows remain unchanged by the original refresh invocation.** Phase 4 adds explicit `--write --publish-scores` and a standalone `publish-scores` command for Postgres; see the [score publication walkthrough](phase-4-score-publication.md). Retries, run tracking, and whole-refresh overlap prevention remain later work. The output JSON is saved before publication and remains on failure; it is not proof of committed database data.
 
 ## Controlled backend transition
 

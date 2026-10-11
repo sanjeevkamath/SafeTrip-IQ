@@ -24,6 +24,17 @@ jobs:
           persist-credentials: false
       - name: Build and exercise local containers without model or credentials
         run: bash scripts/check_containers.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Check search, map, country pages, and refresh status in Chromium
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run test:browser
       - name: Stop disposable containers
         if: always()
         run: docker compose down --volumes

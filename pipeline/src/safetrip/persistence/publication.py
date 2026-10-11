@@ -20,8 +20,10 @@ class SupabasePublisher:
         pass
 
 
-def get_publisher():
+def get_publisher(*, require_postgres=False):
     backend = os.environ.get("SAFETRIP_DB_BACKEND", "supabase")
+    if require_postgres and backend != "postgres":
+        raise ValueError("Final-score publication requires the Postgres backend.")
     if backend == "supabase":
         return SupabasePublisher()
     if backend == "postgres":

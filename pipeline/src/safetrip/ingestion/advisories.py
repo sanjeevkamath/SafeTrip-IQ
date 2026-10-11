@@ -297,11 +297,33 @@ def lookup_iso3(country_name: Optional[str], iso_map: Dict[str, str]) -> Optiona
 TITLE_COUNTRY_RE = re.compile(r"^(?P<country>.+?)\s+[–-]\s+Level\s*\d")
 
 
-def fetch_feed_xml() -> str:
+def fetch_feed_bytes() -> bytes:
     import requests
-    resp = requests.get(FEED_URL, timeout=20)
-    resp.raise_for_status()
-    return resp.text
+    from time import sleep
+    for attempt in range(3):
+        response = None
+        try:
+            response = requests.get(FEED_URL, timeout=(5, 20))
+            if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
+                response.close()
+                sleep(2 ** attempt)
+                continue
+            response.raise_for_status()
+            return response.content
+        except requests.exceptions.SSLError:
+            raise  # Certificate/configuration errors need correction, not retries.
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            if attempt == 2:
+                raise
+            sleep(2 ** attempt)
+        finally:
+            if response is not None:
+                response.close()
+    raise RuntimeError("Advisory fetch attempts exhausted.")
+
+
+def fetch_feed_xml() -> str:
+    return fetch_feed_bytes().decode("utf-8-sig")
 
 
 def clean_html_to_text(raw_html: Optional[str]) -> str:

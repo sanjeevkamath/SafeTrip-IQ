@@ -17,7 +17,9 @@
     "test:countries": "node test-all-countries.js",
     "test:queries": "node --test tests/queries.test.mjs",
     "dev:local": "SAFETRIP_DB_BACKEND=postgres SAFETRIP_DATABASE_URL=postgresql://safetrip_reader:reader_local_only@127.0.0.1:55432/safetrip next dev",
-    "test:postgres": "node --test tests/postgres.integration.test.mjs"
+    "dev:full": "SAFETRIP_DB_BACKEND=postgres SAFETRIP_DATABASE_URL=postgresql://safetrip_reader:reader_local_only@127.0.0.1:55432/safetrip_full next dev",
+    "test:postgres": "node --test tests/postgres.integration.test.mjs",
+    "test:browser": "node --test tests/browser.smoke.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",

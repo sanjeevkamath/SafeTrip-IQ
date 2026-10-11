@@ -1,5 +1,6 @@
 import SearchBar from '@/components/SearchBar'
 import WorldMap from '@/components/WorldMap'
+import RefreshStatus from '@/components/RefreshStatus'
 import { Analytics } from "@vercel/analytics/next"
 
 export const metadata = {
@@ -18,6 +19,7 @@ export default function Home() {
           <p className="text-xl text-gray-600">
             Your intelligent companion for safe and culturally aware travel.
           </p>
+          <RefreshStatus />
         </div>
 
         <div className="w-full flex justify-center">

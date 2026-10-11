@@ -2,7 +2,7 @@
 
 ML-based travel advisory project for Gator AI. A Next.js website reads country information and stored safety scores from Supabase PostgreSQL. Python scripts prepare advisory classifications and country clusters.
 
-The project is being made reproducible before introducing containers and AWS deployment. See the [production roadmap](docs/production-roadmap.md), [security evidence](docs/phase-0-security.md), and [baseline walkthrough](docs/phase-1-baseline.md).
+The project now includes local Docker/Postgres, CI, and a reliable advisory publication pipeline. AWS deployment is the next milestone. See the [production roadmap](docs/production-roadmap.md), [security evidence](docs/phase-0-security.md), and [baseline walkthrough](docs/phase-1-baseline.md).
 
 The [repository guide](docs/repository-guide.md) explains the uv environment, current script responsibilities, and which datasets form the verified baseline.
 
@@ -58,11 +58,21 @@ npm run dev
 
 Use `npm run build` to check the production build. The public client requires read access to `countries`, `culture`, and `scores`. Backend credentials belong only in the ignored root `.env`; `.env.example` documents the settings. Never put a service-role credential in a `NEXT_PUBLIC_` variable.
 
-The `safetrip ingest`, `score`, and `refresh` commands create local artifacts by default; publication requires `--write`. Those commands default to Supabase when publishing. Use `bash scripts/worker_local.sh` with the same arguments to explicitly target Docker Postgres. The local Postgres walkthrough includes a synthetic fixture example; final scores are not yet recalculated by refresh.
+The `safetrip ingest`, `score`, and `refresh` commands create local artifacts by default; publication requires `--write`. Those commands default to Supabase when publishing. Use `bash scripts/worker_local.sh` with the same arguments to explicitly target Docker Postgres. On Postgres, `score` and `refresh` additionally accept `--publish-scores` to recalculate final scores in the same transaction. The new `publish-scores` command reads stored database components to create a preview; `--write` commits it.
 
 ## Continuous integration
 
-GitHub Actions runs `.github/workflows/ci.yml` for pull requests, pushes to `main`, and manual dispatch. Independent jobs check the website (Node 22), lightweight Python package tests (Python 3.11), and a disposable Docker PostgreSQL database. These jobs use no production secrets, model downloads, or retraining.
+Phase 4 now supports explicit final-score previews and atomic publication to local Postgres, including countries with only one component. See the [score publication walkthrough](docs/phase-4-score-publication.md) for commands and raw-cluster protection, and [run history and provenance](docs/phase-4-run-history.md) for publication receipts, model fingerprints, and remaining reliability work.
+
+Postgres refreshes now retain original XML and reuse verified predictions when cleaned text and inference versions match. The [incremental refresh walkthrough](docs/phase-4-incremental-refresh.md) demonstrates this with two local runs.
+
+Complete final refreshes [clear missing advisory/BERT components](docs/phase-4-missing-advisories.md), preserve clustering-only scores, and prevent cooperating workers from overlapping. Clustering stays frozen; evaluated, manually triggered BERT retraining is planned separately.
+
+Advisory fetching now retries temporary failures up to three times. The homepage displays the last committed refresh time, and `safetrip status --output ...` reports overdue running attempts. See [retries and freshness](docs/phase-4-retries-freshness.md).
+
+The reviewed complete snapshot can be imported into the separate local `safetrip_full` database. Use `cd frontend && npm run dev:full` to browse it after import; see [full dataset validation](docs/phase-4-full-dataset.md). Standard development/CI seeds remain three countries.
+
+GitHub Actions runs `.github/workflows/ci.yml` for pull requests, pushes to `main`, and manual dispatch. Independent jobs check the website (Node 22), lightweight Python package tests (Python 3.11), a disposable Docker PostgreSQL database, and container/browser behavior. These jobs use no production secrets, model downloads, or retraining. See the [Stage 4 verification and handoff](docs/phase-4-verification.md) for commands and deployment boundaries.
 
 The frontend job also blocks high/critical production dependency advisories. See the [dependency security record](docs/dependency-security.md) for the patch and remaining development-tool advisory.
 

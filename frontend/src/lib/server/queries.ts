@@ -27,3 +27,7 @@ export function listCountryScores(query?: string) {
 export function getCountryDetails(iso3: string) {
     return read(() => adapter().getCountryDetails(iso3))
 }
+
+export function getRefreshStatus() {
+    return read(() => adapter().getRefreshStatus())
+}
