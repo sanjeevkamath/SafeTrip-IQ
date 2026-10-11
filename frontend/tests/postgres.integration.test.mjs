@@ -67,5 +67,11 @@ test('failed postgres configuration/connection does not fall back to Supabase', 
         { SAFETRIP_DB_BACKEND: 'typo' },
     ]) {
         await assert.rejects(queries(env).listCountryScores(), { message: 'Travel data is temporarily unavailable.' })
+        await assert.rejects(queries(env).getRefreshStatus(), { message: 'Travel data is temporarily unavailable.' })
     }
+})
+
+test('development seeds have no verified refresh time; legacy backend reports unknown', async () => {
+    assert.equal(await queries().getRefreshStatus(), null)
+    assert.equal(await queries({ SAFETRIP_DB_BACKEND: 'supabase' }).getRefreshStatus(), null)
 })

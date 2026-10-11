@@ -83,3 +83,10 @@ class RuntimeTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     get_publisher()
                 supabase.assert_not_called()
+
+    def test_final_publication_rejects_supabase_before_creating_a_client(self):
+        from safetrip.persistence.publication import get_publisher
+        with patch.dict("os.environ", {}, clear=True), patch("safetrip.persistence.supabase.get_writer_client") as client:
+            with self.assertRaises(ValueError):
+                get_publisher(require_postgres=True)
+            client.assert_not_called()

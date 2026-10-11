@@ -105,7 +105,7 @@ class LocalDatabaseTests(unittest.TestCase):
                     subprocess.run([sys.executable, "-m", "alembic", operation, revision], cwd=ROOT, env=env, check=True, capture_output=True)
                     with connect("migrator", database) as conn:
                         count = conn.execute("SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename != 'alembic_version'").fetchone()[0]
-                        self.assertEqual(count, 0 if operation == "downgrade" else 6)
+                        self.assertEqual(count, 0 if operation == "downgrade" else 10)
             finally:
                 admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(database)))
 

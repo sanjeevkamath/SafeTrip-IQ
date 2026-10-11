@@ -4,6 +4,13 @@ import type { Country, Score, Culture } from './types'
 
 const state = globalThis as typeof globalThis & { safetripReaderPool?: Pool }
 
+export async function getRefreshStatus() {
+    const { rows } = await reader().query(`SELECT published_at, source_kind,
+        published_at < now() - interval '48 hours' AS overdue
+        FROM public.refresh_status WHERE singleton`)
+    return rows[0] ?? null
+}
+
 function reader() {
     if (!state.safetripReaderPool) {
         const connectionString = process.env.SAFETRIP_DATABASE_URL

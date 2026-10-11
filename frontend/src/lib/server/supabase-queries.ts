@@ -48,3 +48,5 @@ export async function getCountryDetails(iso3: string) {
     requireSuccess(cultureError)
     return { country, score, culture }
 }
+// Hosted legacy schema has no verified refresh publication timestamp yet.
+export async function getRefreshStatus() { return null }
