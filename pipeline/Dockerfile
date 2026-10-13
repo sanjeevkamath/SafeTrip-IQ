@@ -34,7 +34,7 @@ ENV PATH=/opt/venv/bin:$PATH SAFETRIP_PROJECT_ROOT=/app SAFETRIP_DB_BACKEND=post
 COPY --from=worker-build /opt/venv /opt/venv
 COPY docs/baseline/artifacts.json ./model-manifest.json
 COPY tests/fixtures/advisories.xml tests/fixtures/bert_predictions.json ./fixtures/
-RUN mkdir /output && chown app:app /output
+RUN mkdir /output /models && chown app:app /output /models
 USER app
-ENTRYPOINT ["safetrip"]
+ENTRYPOINT ["python", "-m", "safetrip.cloud_entrypoint"]
 CMD ["--help"]
