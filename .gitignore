@@ -17,11 +17,25 @@ out/
 
 # Environment files
 .env
-.env.local
-.env*.local
+.env.*
+!.env.example
+.aws/
 
 # Private database audit exports and connection certificates
 .local/
+
+# Terraform local state and provider cache
+**/.terraform/
+**/.terraform.tfstate.lock.info
+**/terraform.tfstate*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfvars.tmp
+*.tfplan
+**/crash.log
+**/crash.*.log
 
 # macOS
 .DS_Store

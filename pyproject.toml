@@ -60,6 +60,7 @@ torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 
 [dependency-groups]
 worker = [
+    "boto3>=1.40,<2",
     "numpy==1.26.4",
     "psycopg[binary]==3.2.10",
     "pycountry==24.6.1",

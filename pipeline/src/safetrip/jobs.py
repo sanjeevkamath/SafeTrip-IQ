@@ -1,6 +1,7 @@
 """Orchestration separated from parsing, inference, and database access."""
 import csv
 import json
+import os
 import re
 from pathlib import Path
 
@@ -38,6 +39,8 @@ def incremental_score(rows, model_path, publisher, metadata):
     validate_advisories(rows)
     metadata.update(model_version=model_fingerprint(resolve_path(model_path)),
                     inference_version="bert-cpu-max256-v1")
+    if os.environ.get("SAFETRIP_MODEL_S3_VERSION_ID"):
+        metadata["model_s3_version_id"] = os.environ["SAFETRIP_MODEL_S3_VERSION_ID"]
     cached = publisher.cached_predictions()
     changed, reused = [], []
     for row in rows:
@@ -64,6 +67,8 @@ def score(rows, model_path, metadata=None):
     if metadata is not None:
         from safetrip.inference.integrity import model_fingerprint
         metadata["model_version"] = model_fingerprint(resolve_path(model_path))
+        if os.environ.get("SAFETRIP_MODEL_S3_VERSION_ID"):
+            metadata["model_s3_version_id"] = os.environ["SAFETRIP_MODEL_S3_VERSION_ID"]
     from safetrip.inference.bert import load_model, score_texts
     tokenizer, model = load_model(resolve_path(model_path))
     model.to("cpu").eval()
