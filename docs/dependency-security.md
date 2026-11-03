@@ -1,4 +1,18 @@
-# Frontend dependency patch — 2026-10-08
+# Frontend dependency security
+
+## Current verification — November 3, 2026
+
+Next.js and `eslint-config-next` are now pinned together at **16.4.5**, replacing 16.3.8. This addresses the newly reported Next.js advisories that caused CI's production audit to fail. No audit checks were disabled and no forced audit upgrade was used.
+
+A clean install and `npm run audit:production` report **zero production vulnerabilities**. The full audit still reports **14 moderate development dependency entries**, with no high or critical entries; these are not represented as fixed. Keep monitoring the full audit separately from the production gate.
+
+CI runners are pinned to Ubuntu 24.04 because the locked Playwright 1.57.0 cannot install Chromium dependencies on Ubuntu 26.04 selected by `ubuntu-latest`. The Terraform lockfile now includes the signed Linux amd64 package hash alongside the Mac arm64 hash. A clean Linux container successfully ran read-only initialization, validation, and all three mocked Terraform tests with AWS provider 6.68.0 unchanged.
+
+The updated lint rules required moving the search fetch helper into the effect that uses it. Query tests and the production build pass; three existing image-element optimization warnings remain.
+
+The changes affect hosted production only after deployment. Local verification uses fixed test-database credentials and placeholder Supabase build values.
+
+## Historical patch — October 8, 2026
 
 The original lockfile reported 21 npm audit findings: one critical, 16 high, three moderate, and one low. These counts include parent packages affected through dependencies; they do not represent 21 independently exploitable application flaws.
 

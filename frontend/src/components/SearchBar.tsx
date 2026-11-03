@@ -23,6 +23,27 @@ export default function SearchBar() {
 
     // Debounce search
     useEffect(() => {
+        const fetchResults = async (searchQuery: string) => {
+            setIsLoading(true)
+            setError(false)
+            try {
+                const res = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}`)
+                if (!res.ok) throw new Error("Search unavailable")
+                if (res.ok) {
+                    const data = await res.json()
+                    setResults(data)
+                    setShowDropdown(true)
+                }
+            } catch (error) {
+                console.error('Search error:', error)
+                setError(true)
+                setResults([])
+                setShowDropdown(false)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
         const timer = setTimeout(() => {
             if (query.length >= 2) {
                 fetchResults(query)
@@ -44,27 +65,6 @@ export default function SearchBar() {
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [])
-
-    const fetchResults = async (searchQuery: string) => {
-        setIsLoading(true)
-        setError(false)
-        try {
-            const res = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}`)
-            if (!res.ok) throw new Error("Search unavailable")
-            if (res.ok) {
-                const data = await res.json()
-                setResults(data)
-                setShowDropdown(true)
-            }
-        } catch (error) {
-            console.error('Search error:', error)
-            setError(true)
-            setResults([])
-            setShowDropdown(false)
-        } finally {
-            setIsLoading(false)
-        }
-    }
 
     const handleSelect = (iso3: string) => {
         router.push(`/country/${iso3}`)
