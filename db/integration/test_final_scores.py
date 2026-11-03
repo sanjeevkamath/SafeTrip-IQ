@@ -107,9 +107,10 @@ class FinalScoreTests(unittest.TestCase):
 
     def test_incremental_refresh_preserves_prediction_origin_and_rejects_changed_cache(self):
         from safetrip import jobs
-        metadata = {"cleaning_version":"legacy-advisory-v1"}
+        from safetrip.ingestion.advisories import CLEANING_VERSION
+        metadata = {"cleaning_version": CLEANING_VERSION}
         rows = [{"iso3":"AAA", "description_text":"unchanged"}]
-        versions = {**metadata, "model_version":"fingerprint", "inference_version":"bert-cpu-max256-v1"}
+        versions = {**metadata, "model_version":"fingerprint", "inference_version":"bert-document-inputs-v2"}
         self.writer.publish("score", [{"iso3":"AAA", "cleaned_text":"unchanged", "bert_score":0}], metadata=versions)
         origin = str(self.writer.last_run_id)
         with patch("safetrip.inference.integrity.model_fingerprint", return_value="fingerprint"), \

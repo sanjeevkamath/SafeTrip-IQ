@@ -3,6 +3,8 @@ from pathlib import Path
 import os
 from safetrip.config import resolve_path
 
+INFERENCE_VERSION = "bert-document-inputs-v2"
+
 def load_model(model_path):
     from transformers import BertTokenizerFast, BertForSequenceClassification
     model_path = Path(model_path)
@@ -22,11 +24,19 @@ def load_model(model_path):
 
 def score_texts(texts, tokenizer, model, device):
     import torch
-    inputs = tokenizer(texts, truncation=True, padding=True, max_length=256, return_tensors="pt").to(device)
+    from safetrip.inference.document_inputs import encode_documents, pool_document_logits
+    policy = getattr(model.config, "safetrip_input_policy", "head")
+    length = getattr(model.config, "safetrip_max_length", 256)
+    overlap = getattr(model.config, "safetrip_chunk_overlap", 128)
+    if length not in {256, 512} or policy not in {"head", "head_tail", "chunks"}:
+        raise ValueError("Unsupported model document-input configuration.")
+    inputs, documents = encode_documents(tokenizer, texts, policy=policy, max_length=length, overlap=overlap)
+    inputs = inputs.to(device)
     with torch.no_grad():
-        outputs = model(**inputs)
-
-    logits = outputs.logits
+        # Bound inference memory even when many long advisories are batched together.
+        windows = [model(**{name: value[start:start + 4] for name, value in inputs.items()}).logits
+                   for start in range(0, len(documents), 4)]
+    logits = pool_document_logits(torch.cat(windows), documents, len(texts))
     # Training maps original labels 1,2,3,4 to class IDs 0,1,2,3.
     # Preserve the class ID here; this is not a probability or a 0-10 score.
 

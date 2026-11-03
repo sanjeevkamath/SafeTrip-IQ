@@ -1,0 +1,130 @@
+name: Publish worker image
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-worker-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  publish:
+    if: >-
+      github.repository == 'sanjeevkamath/SafeTrip-IQ' &&
+      vars.AWS_PUBLISH_ROLE_ARN != '' && vars.AWS_ECR_REPOSITORY != '' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      PUBLISH_ROLE: ${{ vars.AWS_PUBLISH_ROLE_ARN }}
+      ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}
+    steps:
+      - name: Check out the exact tested commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Require successful CI for this main-branch commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f head_sha="$SOURCE_SHA" -f branch=main -f per_page=100 \
+            > "$RUNNER_TEMP/ci-runs.json"
+          python -m scripts.check_publish_ci --sha "$SOURCE_SHA" \
+            --repository "$GITHUB_REPOSITORY" < "$RUNNER_TEMP/ci-runs.json"
+
+      - name: Validate publisher configuration
+        id: config
+        run: |
+          set -euo pipefail
+          [[ "$PUBLISH_ROLE" =~ ^arn:aws:iam::([0-9]{12}):role/safetrip-iq-github-publisher$ ]]
+          echo "account=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          [[ "$ECR_REPOSITORY" =~ ^[a-z0-9][a-z0-9._/-]*$ ]]
+          echo "tag=sha-${SOURCE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+
+      - name: Exchange GitHub identity for temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ env.PUBLISH_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-publish-${{ github.run_id }}
+          role-duration-seconds: 1800
+          allowed-account-ids: ${{ steps.config.outputs.account }}
+          unset-current-credentials: true
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and publish the worker only
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: pipeline/Dockerfile
+          target: worker
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.config.outputs.tag }}
+          provenance: false
+          sbom: false
+          labels: |
+            org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Record the immutable image reference
+        env:
+          IMAGE_REPOSITORY: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE_TAG: ${{ steps.config.outputs.tag }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          digest = os.environ['IMAGE_DIGEST']
+          if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+              raise ValueError('Build did not return an immutable image digest.')
+          image = os.environ['IMAGE_REPOSITORY'] + '@' + digest
+          report = {'image': image, 'digest': digest, 'tag': os.environ['IMAGE_TAG'],
+                    'source_sha': os.environ['SOURCE_SHA'], 'platform': 'linux/amd64',
+                    'workflow_run': os.environ['GITHUB_SERVER_URL'] + '/' + os.environ['GITHUB_REPOSITORY'] +
+                    '/actions/runs/' + os.environ['GITHUB_RUN_ID'], 'ecs_task_started': False}
+          Path('worker-image.json').write_text(json.dumps(report, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Published worker image: `' + image + '`\n\nNo ECS task was launched.\n')
+          PY
+
+      - name: Save the image release record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: worker-image-${{ github.run_id }}-${{ github.run_attempt }}
+          path: worker-image.json
+          if-no-files-found: error
+          retention-days: 30
