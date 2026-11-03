@@ -4,6 +4,31 @@ import html
 import re
 import xml.etree.ElementTree as ET
 from typing import Dict, Optional, List
+from .country_names import COUNTRY_NAMES
+
+CLEANING_VERSION = "advisory-no-country-labels-v4"
+
+
+def _name_pattern(names):
+    # Longest first prevents a shorter alias from leaving part of a full name.
+    variants = {name.replace("’", "'") for name in names if name}
+    return re.compile(r"(?<!\w)(?:" + "|".join(
+        re.escape(name).replace(r"\ ", r"\s+")
+        for name in sorted(variants, key=len, reverse=True)) + r")(?!\w)", re.IGNORECASE)
+
+
+COUNTRY_NAME_PATTERN = _name_pattern(COUNTRY_NAMES)
+LEVEL_PATTERN = re.compile(
+    r"\b(?:advisory\s+)?level\s*[-:]?\s*(?:[1-4]|IV|III|II|I|one|two|three|four)\b",
+    re.IGNORECASE,
+)
+RECOMMENDATION_PATTERN = re.compile(
+    r"\b(?:do\s+not\s+travel|reconsider\s+travel|"
+    r"(?:should\s+not|not\s+to)\s+travel|"
+    r"avoid\s+(?:all|non[\s-]?essential)\s+travel|travel\s+is\s+not\s+recommended|"
+    r"exercise\s+(?:increased\s+caution|normal\s+precautions?))\b"
+    r"(?:\s+(?:to|in)\b)?", re.IGNORECASE,
+)
 
 FEED_URL = "https://travel.state.gov/_res/rss/TAsTWs.xml"
 
@@ -326,13 +351,12 @@ def fetch_feed_xml() -> str:
     return fetch_feed_bytes().decode("utf-8-sig")
 
 
-def clean_html_to_text(raw_html: Optional[str]) -> str:
+def clean_html_to_text(raw_html: Optional[str], country_name: Optional[str] = None) -> str:
     if not raw_html:
         return ""
     # strip tags
-    text = re.sub(r"<[^>]+>", " ", raw_html)
-    # decode HTML entities
-    text = html.unescape(text)
+    text = re.sub(r"<[^>]+>", " ", html.unescape(raw_html))
+    text = text.replace("’", "'")
     # collapse whitespace
     text = re.sub(r"\s+", " ", text).strip()
 
@@ -352,19 +376,30 @@ def clean_html_to_text(raw_html: Optional[str]) -> str:
         r"Enroll in the Smart Traveler Enrollment Program \(STEP\) to receive messages and Alerts.*",
         r"Review the Country Security Report for.*",
         r"Prepare a plan for emergency situations.*",
-        r"Review the Traveler’s Checklist.*",
+        r"Review the Traveler's Checklist.*",
         r"Visit the CDC page for the latest Travel Health Information.*",
         r"We highly recommend that you buy insurance before you travel.*",
         r"Check with your travel insurance provider about evacuation assistance.*",
         r"Visit our website for Travel to High-Risk Areas.*",
-        r"U\.S\. government employees working in .* must obtain special authorization.*", # Often generic for high risk
     ]
 
     for pattern in boilerplate_patterns:
-        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
+        # Remove only the matched sentence, not all later risk information.
+        pattern = pattern.removesuffix(".*") + r"[^.!?]*(?:[.!?]|$)"
+        text = re.sub(pattern, " ", text, flags=re.IGNORECASE)
+
+    # Some archived body text lost whitespace around HTML emphasis tags.
+    text = re.sub(r"\b(level\s*[1-4])(?=[a-z])", r"\1 ", text, flags=re.IGNORECASE)
+    text = LEVEL_PATTERN.sub(" ", text)
+    text = RECOMMENDATION_PATTERN.sub(" ", text)
+    if country_name:
+        text = _name_pattern([country_name]).sub(" ", text)
+    text = COUNTRY_NAME_PATTERN.sub(" ", text)
 
     # Clean up any double spaces created
-    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", text).lstrip(" .,:;–—-").rstrip()
+    if not re.search(r"\w", text):
+        return ""
 
     return text.lower()
 
@@ -404,7 +439,7 @@ def parse_feed(xml_text: str) -> List[dict]:
         # Description
         desc_el = item.find("description")
         raw_html = desc_el.text if desc_el is not None else ""
-        description_text = clean_html_to_text(raw_html)
+        description_text = clean_html_to_text(raw_html, country_name)
 
         records.append(
             {
@@ -422,21 +457,40 @@ def parse_feed(xml_text: str) -> List[dict]:
 
 
 def map_records(xml_text, iso_map=None):
-    """Preserve manual/code/name precedence and last-per-ISO3 deduplication.
+    """Resolve country identity and retain the newest dated advisory per ISO3.
 
     Fail on unmapped records instead of silently publishing an incomplete feed.
     An optional CSV can supply the historical country-name fallback.
     """
-    overrides = {"Czechia": "CZE", "Federated States of Micronesia": "FSM",
-                 "Macau": "MAC", "Kingdom of Denmark": "DNK", "French West Indies": "GLP"}
+    from .countries import resolve_iso3
+    from email.utils import parsedate_to_datetime
+    from datetime import datetime, timezone
+    def source_date(value):
+        try:
+            date = parsedate_to_datetime(value)
+            if date.tzinfo is None:
+                raise ValueError("Date lacks timezone.")
+            return date
+        except (ValueError, TypeError):
+            # Official RSS also uses calendar dates without a time or timezone.
+            # Compare these at UTC midnight, preserving the original source string.
+            return datetime.strptime(value, "%a, %d %b %Y").replace(tzinfo=timezone.utc)
     unique = {}
     for record in parse_feed(xml_text):
-        iso3 = (overrides.get(record["country_name"])
-                or US_CODE_TO_ISO3.get(record["country_code"])
-                or lookup_iso3(record["country_name"], iso_map or {}))
-        if not iso3:
-            raise ValueError("An advisory could not be mapped to ISO3; supply --iso-csv.")
+        iso3 = resolve_iso3(record["country_name"], record["country_code"], iso_map)
         record["iso3"] = iso3
+        if iso3 in unique:
+            previous = unique[iso3]
+            if previous["description_raw_html"] != record["description_raw_html"]:
+                try:
+                    old_date = source_date(previous["pub_date_raw"])
+                    new_date = source_date(record["pub_date_raw"])
+                except (ValueError, TypeError) as error:
+                    raise ValueError("Conflicting duplicate advisories require valid dated source records.") from error
+                if old_date == new_date:
+                    raise ValueError("Conflicting duplicate advisories have identical publication dates.")
+                if new_date < old_date:
+                    continue
         unique[iso3] = record
     if not unique:
         raise ValueError("No advisories found; refusing an empty refresh.")

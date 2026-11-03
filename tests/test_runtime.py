@@ -32,11 +32,11 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "")
 
-    def test_mapping_and_existing_cleaning_are_preserved(self):
+    def test_mapping_is_preserved_and_label_cues_removed(self):
         rows = jobs.ingest(FIXTURE)
         self.assertEqual([row["iso3"] for row in rows], ["CAN", "JPN"])
-        self.assertEqual(rows[0]["description_text"], "exercise normal precautions. watch for winter road conditions.")
-        self.assertEqual(clean_html_to_text("<p>Crime &amp; theft.</p> Review the Traveler’s Checklist. More text."), "crime & theft.")
+        self.assertEqual(rows[0]["description_text"], "watch for winter road conditions.")
+        self.assertEqual(clean_html_to_text("<p>Crime &amp; theft.</p> Review the Traveler’s Checklist. More text."), "crime & theft. more text.")
 
     def test_unmapped_or_empty_feed_fails(self):
         for xml in ("<rss><channel/></rss>", "<rss><channel><item><title>Unknown - Level 2</title><description>Example</description></item></channel></rss>"):

@@ -19,6 +19,8 @@ ALTER ROLE safetrip_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOB
 ALTER ROLE safetrip_writer NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 REVOKE ALL ON DATABASE safetrip FROM PUBLIC;
 GRANT CONNECT ON DATABASE safetrip TO safetrip_migrator, safetrip_reader, safetrip_writer;
+-- The migration role may create the private advisory schema; application roles may not.
+GRANT CREATE ON DATABASE safetrip TO safetrip_migrator;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 ALTER SCHEMA public OWNER TO safetrip_migrator;
 GRANT USAGE ON SCHEMA public TO safetrip_reader, safetrip_writer;

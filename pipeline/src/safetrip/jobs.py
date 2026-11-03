@@ -36,9 +36,12 @@ def incremental_score(rows, model_path, publisher, metadata):
     """Reuse only predictions whose text and inference provenance still match."""
     from hashlib import sha256
     from safetrip.inference.integrity import model_fingerprint
-    validate_advisories(rows)
+    rows = prepare_model_rows(rows)
+    from safetrip.ingestion.advisories import CLEANING_VERSION
+    from safetrip.inference.bert import INFERENCE_VERSION
     metadata.update(model_version=model_fingerprint(resolve_path(model_path)),
-                    inference_version="bert-cpu-max256-v1")
+                    cleaning_version=CLEANING_VERSION,
+                    inference_version=INFERENCE_VERSION)
     if os.environ.get("SAFETRIP_MODEL_S3_VERSION_ID"):
         metadata["model_s3_version_id"] = os.environ["SAFETRIP_MODEL_S3_VERSION_ID"]
     cached = publisher.cached_predictions()
@@ -61,16 +64,34 @@ def incremental_score(rows, model_path, publisher, metadata):
     return predictions, reused
 
 
+def prepare_model_rows(rows):
+    """Also protect JSON scoring inputs that bypass RSS ingestion; never mutate inputs."""
+    from safetrip.ingestion.advisories import clean_html_to_text
+    validate_advisories(rows)
+    return validate_advisories([
+        {**row, "description_text": clean_html_to_text(row["description_text"], row.get("country_name"))}
+        for row in rows
+    ])
+
+
 def score(rows, model_path, metadata=None):
     # Validation happens before loading the checkpoint or touching the database.
-    validate_advisories(rows)
+    rows = prepare_model_rows(rows)
     if metadata is not None:
         from safetrip.inference.integrity import model_fingerprint
+        from safetrip.ingestion.advisories import CLEANING_VERSION
+        from safetrip.inference.bert import INFERENCE_VERSION
+        metadata["cleaning_version"] = CLEANING_VERSION
+        metadata["inference_version"] = INFERENCE_VERSION
         metadata["model_version"] = model_fingerprint(resolve_path(model_path))
         if os.environ.get("SAFETRIP_MODEL_S3_VERSION_ID"):
             metadata["model_s3_version_id"] = os.environ["SAFETRIP_MODEL_S3_VERSION_ID"]
     from safetrip.inference.bert import load_model, score_texts
     tokenizer, model = load_model(resolve_path(model_path))
+    from safetrip.ingestion.advisories import CLEANING_VERSION
+    trained_cleaner = getattr(model.config, "safetrip_cleaning_version", None)
+    if isinstance(trained_cleaner, str) and trained_cleaner != CLEANING_VERSION:
+        raise ValueError("Model preprocessing version differs from runtime; use a matching evaluated checkpoint.")
     model.to("cpu").eval()
     output = []
     for start in range(0, len(rows), 16):

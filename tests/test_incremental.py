@@ -5,16 +5,17 @@ import unittest
 from unittest.mock import Mock, patch
 
 from safetrip import jobs
+from safetrip.ingestion.advisories import CLEANING_VERSION
 
 
 class IncrementalTests(unittest.TestCase):
     def setUp(self):
         self.rows = [{"iso3":"CAN", "description_text":"same text"}]
-        self.metadata = {"cleaning_version":"legacy-advisory-v1"}
+        self.metadata = {"cleaning_version": CLEANING_VERSION}
         self.old = {"iso3":"CAN", "cleaned_text":"same text", "bert_score":0,
                     "last_run_id":"original", "status":"succeeded", "metadata":{
-                        "model_version":"fingerprint", "cleaning_version":"legacy-advisory-v1",
-                        "inference_version":"bert-cpu-max256-v1"}}
+                        "model_version":"fingerprint", "cleaning_version": CLEANING_VERSION,
+                        "inference_version":"bert-document-inputs-v2"}}
         self.publisher = Mock()
 
     def run_scoring(self, old):

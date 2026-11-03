@@ -63,8 +63,9 @@ def main(argv=None):
             print("Component coverage: " + json.dumps(artifact["coverage"], sort_keys=True))
             return 0
         if args.command in {"ingest", "refresh"}:
+            from safetrip.ingestion.advisories import CLEANING_VERSION
             run_metadata.update(source_kind="local_xml" if args.input else "state_department_feed",
-                                cleaning_version="legacy-advisory-v1")
+                                cleaning_version=CLEANING_VERSION)
             def retain_raw(content):
                 from hashlib import sha256
                 raw_path = resolve_path(args.output + ".source.xml")

@@ -48,6 +48,8 @@ GitHub Actions -> OIDC IAM role -> ECR + ECS/Terraform deployment
 
 ## Build order
 
+Production model gate: preprocessing now removes country names and direct advisory-level cues. The frozen training/evaluation data contains many such cues, so evaluate and likely retrain a candidate with consistent preprocessing before production publication. See `docs/advisory-preprocessing-v2.md`. The completed AWS benchmarks describe the earlier image, not validation of this new model-input policy.
+
 1. **Size and estimate:** use the existing local benchmark as a starting point, then price a short Fargate test in `us-east-2`. The current full-advisory run was measured on an emulated Linux amd64 container on a Mac; AWS native performance and image/model transfer still need measurement. Its 2-CPU/2-GiB Docker limit is **not** a valid Fargate task size: test either 1 vCPU/2 GiB or 2 vCPU/4 GiB and compare total cost and completion time.
 2. **Infrastructure:** create a small Terraform stack for ECR, a private S3 model bucket, ECS cluster/task definition, CloudWatch log group, least-privilege IAM roles, and a secret reference. Add state storage with encryption, versioning, and locking before collaborative CI deployment. Keep the schedule disabled.
 3. **Model delivery:** package the six verified model files, upload the archive to a versioned S3 bucket, and pin both its object VersionId and archive SHA-256. At task startup, the worker checks that archive and every extracted file against `docs/baseline/artifacts.json` before inference. Implementation, local measurements, and both completed native AWS runs are documented in `docs/phase-5-manual-benchmark.md`; model delivery took 6.689 and 1.732 seconds in the two single AWS observations.

@@ -15,6 +15,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.16.5"
+          terraform_wrapper: false
+      - name: Check infrastructure formatting
+        run: terraform -chdir=infra/terraform fmt -check -recursive
+      - name: Initialize providers without a remote backend
+        run: terraform -chdir=infra/terraform init -backend=false -input=false -lockfile=readonly
+      - name: Validate infrastructure
+        run: terraform -chdir=infra/terraform validate
+      - name: Test publishing permissions without AWS credentials
+        run: terraform -chdir=infra/terraform test
+
   containers:
     runs-on: ubuntu-latest
     timeout-minutes: 25

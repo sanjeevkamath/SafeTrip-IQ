@@ -1,0 +1,18 @@
+# Shortest path to official advisory production
+
+Decision: use official State Department overall advisory levels and the existing verified clustering component for production; keep BERT runs and predictions separate. Completing this production path does not depend on rebuilding the research dataset or finding a successful model.
+
+## Implementation order
+
+1. **Represent the source explicitly.** Parse level 1–4 strictly from the RSS item title and retain the item link, original title, source publication date, retrieval time, and raw text. Current ingestion discards the title's level; the database/publication path uses `bert_score`. Add an explicitly named official advisory field through a migration and preserve BERT predictions as experimental history. Do not put an official level into a field labeled BERT.
+2. **Resolve source identity and duplicates.** Preserve existing mixed-tag/name cross-checks. Define the country/region policy for Gaza/West Bank and Saba/Bonaire, and a canonical-source policy for conflicting same-date versions. The current parser deliberately stops on these cases. A successful production refresh needs to resolve them explicitly rather than choose a random record or silently drop coverage.
+3. **Publish atomically with score provenance.** Reuse locking, transactions, append-only run history, rollback, freshness, and missing-component behavior. Compute from official level plus clustering; missing advisory stays blank and a clustering-only country remains valid. Persist the source and formula version. Preserve the frozen legacy baseline as historical evidence. Document the 0–10 conversion as an application rule, not an official government safety scale.
+4. **Update the public presentation.** Show “Official advisory” and “Clustering component,” source links, publication/refresh dates, and missing data. Keep BERT marked experimental and outside the production composite. This is a focused label/data change; the full frontend redesign can wait.
+5. **Verify locally, then run once on AWS.** Test strict title levels, body-level/CDC/regional confusion, duplicate policy, missingness, read-only roles, rollback, reruns, and source history. Build and pin the worker image. Run a read-only preview against the full live feed, inspect coverage and differences, then one controlled publication using the backend database writer secret over verified TLS. Verify the Vercel site reads the result. AWS runs need a current CLI session and the production connection secret configured; do not paste credentials into chat or Git.
+6. **Enable weekly execution.** Start with the chosen 1 vCPU/2 GiB Fargate task and existing public-subnet approach, avoiding a NAT gateway. Add the Scheduler invocation role, bounded retries, logs with retention, failure notification, and freshness checks. Verify one scheduled invocation actually completes. Record actual task duration and gross billing; old BERT benchmarks do not measure this revised worker.
+
+## Keep the scope small
+
+No additional BERT training, model upload, clustering retraining, database-provider migration, frontend redesign, or new always-on AWS service is necessary to finish this path. The production worker no longer requires downloading a BERT checkpoint. A lighter worker image and removal of unused model access permissions are appropriate follow-up changes; existing research artifacts can remain available separately.
+
+The remaining real product decision is how separate regional advisories contribute to a country-level display. The database migration and canonical-source behavior should be reviewed as concrete local results before the first production publication. No schedule or cloud resource was changed by this planning document.
