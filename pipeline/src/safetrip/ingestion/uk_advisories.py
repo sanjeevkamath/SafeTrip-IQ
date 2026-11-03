@@ -74,11 +74,16 @@ def destination(country):
     return {'iso3': iso3, 'covered_iso3': [iso3], 'mapping_review_required': False}
 
 
-def normalize_uk(data):
+def normalize_uk(data, *, allow_unresolved=False):
     if data.get('document_type') != 'travel_advice' or data.get('withdrawn'):
         raise ValueError('Expected active travel-advice document.')
     details = data['details']
-    identity = destination(details['country'])
+    try:
+        identity = destination(details['country'])
+    except ValueError:
+        if not allow_unresolved:
+            raise
+        identity = {'iso3': None, 'covered_iso3': [], 'mapping_review_required': True}
     alerts = details.get('alert_status')
     if not isinstance(alerts,list) or any(a not in KNOWN_ALERTS for a in alerts):
         raise ValueError('Unknown or missing UK warning status; review before use.')

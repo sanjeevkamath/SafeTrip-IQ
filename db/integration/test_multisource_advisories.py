@@ -35,15 +35,17 @@ class MultisourceAdvisoryTests(unittest.TestCase):
         return version
 
     def test_sources_match_country_without_sharing_document_keys(self):
+        documents = []
         for source,key in [('us_state','us-canada'),('uk_fcdo','uk-content-uuid')]:
             doc = self.document(source,key)
+            documents.append(doc)
             version = self.version(doc,source,level=2 if source=='us_state' else None,
                                    flags=None if source=='us_state' else ['avoid_all_travel_to_parts'])
             self.conn.execute('''INSERT INTO advisory.coverage(coverage_id,version_id,iso3,scope)
                 VALUES (%s,%s,'CAN','whole_country')''',(uuid.uuid4(),version))
         rows=self.conn.execute('''SELECT d.source,v.us_level,v.uk_alert_status FROM advisory.documents d
             JOIN advisory.versions v USING(document_id) JOIN advisory.coverage c USING(version_id)
-            WHERE c.iso3='CAN' ORDER BY d.source''').fetchall()
+            WHERE c.iso3='CAN' AND d.document_id=ANY(%s) ORDER BY d.source''', (documents,)).fetchall()
         self.assertEqual(rows,[('uk_fcdo',None,['avoid_all_travel_to_parts']),('us_state',2,None)])
 
     def test_unknown_flags_invalid_levels_and_source_mismatches_are_rejected(self):

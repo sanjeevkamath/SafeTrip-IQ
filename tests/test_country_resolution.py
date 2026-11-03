@@ -36,3 +36,6 @@ class CountryResolutionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "aggregation policy"):
             resolve_iso3("Gaza", "IS")
         self.assertEqual(resolve_iso3("Gaza", "IS", allow_regions=True), "PSE")
+        self.assertEqual(resolve_iso3("The West Bank", "IS", allow_regions=True), "PSE")
+        with self.assertRaisesRegex(ValueError, "aggregation policy"):
+            resolve_iso3("The West Bank", "IS")
