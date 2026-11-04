@@ -125,9 +125,6 @@ def setup():
 
 
 def ingest(args):
-    from sqlalchemy.engine import URL
-    from safetrip.persistence.postgres import PostgresPublisher
-    from safetrip.persistence.advisories import ingest_capture
     from safetrip.ingestion.multisource import normalize_bundle
     bundle=json.loads(Path(args.input).read_text())
     if set(bundle.get('iso3') or []) != {'CAN','JPN','USA'}:
@@ -135,6 +132,9 @@ def ingest(args):
     rows=normalize_bundle(bundle)
     if any(c['iso3'] not in {'CAN','JPN','USA'} for r in rows for c in r['coverage']):
         raise ValueError('Unexpected destination in initial capture')
+    from sqlalchemy.engine import URL
+    from safetrip.persistence.postgres import PostgresPublisher
+    from safetrip.persistence.advisories import ingest_capture
     config=read_config()
     with connection(config) as conn: check_writer(conn)
     output=Path(args.output)

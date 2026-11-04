@@ -5,9 +5,18 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+from urllib.parse import urlsplit, parse_qs
 
-from sqlalchemy.engine import make_url
 from safetrip.persistence.postgres import writer_url_allowed
+
+
+def make_url(value):
+    # The default CI unit job deliberately installs no database/ML dependencies.
+    parsed=urlsplit(value)
+    return SimpleNamespace(drivername=parsed.scheme,username=parsed.username,
+                           host=parsed.hostname,port=parsed.port,
+                           query={key:values[0] for key,values in parse_qs(parsed.query).items()})
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('hosted_advisories',ROOT/'db/scripts/hosted_advisories.py')
@@ -44,7 +53,6 @@ class HostedWriterTests(unittest.TestCase):
                 with self.assertRaises(ValueError):hosted.read_config()
 
     def test_import_is_blocked_before_credentials_for_an_unbounded_capture(self):
-        from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'capture.json';path.write_text('{"iso3":null}')
             with patch.object(hosted,'read_config') as credentials:
