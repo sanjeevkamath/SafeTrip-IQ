@@ -14,7 +14,7 @@ from .countries import resolve_iso3
 from .uk_advisories import destination, normalize_uk, paragraphs
 
 FORMAT = 'safetrip-advisory-capture-v1'
-PARSER_VERSION = 'us-uk-ingestion-v1'
+PARSER_VERSION = 'us-uk-ingestion-v2'
 US_COMPOUND_CANDIDATES = {
     'french west indies': ['GLP', 'MTQ', 'MAF', 'BLM'],
     'mainland china, hong kong & macau - see summaries': ['CHN', 'HKG', 'MAC'],

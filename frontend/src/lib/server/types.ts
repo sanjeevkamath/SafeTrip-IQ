@@ -5,6 +5,21 @@ export type Country = {
     continent: string | null
     flag_url: string | null
 }
+export type AdvisorySummary = {
+    iso3: string
+    document_id: string
+    version_id: string
+    source: 'us_state' | 'uk_fcdo'
+    source_url: string
+    source_public_updated_at: string | null
+    source_updated_at: string | null
+    source_reviewed_at: string | null
+    fetched_at: string
+    us_level: number | null
+    uk_alert_status: string[] | null
+    coverage_scope: 'whole_country' | 'parts'
+    region_label: string | null
+}
 export type Score = {
     iso3: string
     safe_trip_score: number | null

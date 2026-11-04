@@ -8,6 +8,7 @@ from unittest.mock import patch
 from safetrip.cli import main
 from safetrip.ingestion.multisource import (
     capture_bundle, decode_capture, envelope, normalize_bundle, official_url, timestamp, preview,
+    us_documents,
 )
 
 FIXTURE = Path(__file__).parent/'fixtures/us_uk_capture.json'
@@ -67,6 +68,18 @@ class MultisourceIngestionTests(unittest.TestCase):
         self.assertEqual(report['sources']['us_state'],3)
         self.assertEqual(report['review_required'],2)
         self.assertEqual(report['overlapping_country_documents'][0]['iso3'],'CAN')
+
+    def test_palestinian_regions_share_country_key_without_losing_scope(self):
+        from xml.etree import ElementTree as ET
+        c=next(c for c in self.bundle()['captures'] if c['source']=='us_state')
+        xml=ET.fromstring(decode_capture(c))
+        for item,name,level in zip(xml.findall('./channel/item'),['Gaza','The West Bank'],[4,3]):
+            item.find('title').text=f'{name} - Level {level}: Example'
+        rows=us_documents(ET.tostring(xml),c['fetched_at'],{'PSE'})
+        self.assertEqual([r['coverage'][0] for r in rows],[
+            {'iso3':'PSE','scope':'parts','region_label':'Gaza'},
+            {'iso3':'PSE','scope':'parts','region_label':'The West Bank'}])
+        self.assertEqual([r['us_level'] for r in rows],[4,3])
 
     def test_compound_uk_destination_is_stored_as_unresolved_not_one_country(self):
         b=self.bundle();b['iso3']=None

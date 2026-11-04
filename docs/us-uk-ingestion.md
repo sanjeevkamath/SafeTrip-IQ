@@ -84,6 +84,14 @@ The synthetic offline capture fixture is `tests/fixtures/us_uk_capture.json`. It
 
 Connect approved source comparison queries/UI, decide canonical/region publication policy, audit the hosted schema, and migrate Supabase safely. NLP context/severity annotation and independent evaluation remain separate requirements. Keep using V2 ingestion commands for source storage; legacy `refresh` still denotes the earlier BERT workflow.
 
+### Approved destination mapping — November 4, 2026
+
+Parser `us-uk-ingestion-v2` maps the UK Antarctica/British Antarctic Territory document to `ATA`. The original source name, text, and warning scopes remain intact; a destination join does not expand the geographic applicability of a warning.
+
+US Gaza and West Bank documents already map to Palestine (`PSE`), with separate `parts` coverage rows and original regional labels. They remain independent documents and levels; no countrywide level or averaging policy is inferred. Compound destinations remain unresolved pending a later decision. This does not block ingesting or displaying their source documents with a review indicator.
+
+The parser version changed because the Antarctica mapping changes normalized output. Replaying an older capture under v2 can create a new normalized version while retaining the previous version and original raw bytes. The November 3 counts below describe the earlier v1 preview.
+
 ## Verified milestone — November 3, 2026
 
 - Live subset: five documents (two US, three UK) for CAN/JPN/USA ingested into local Docker Postgres. Replaying the same capture created zero documents/versions and reused all five versions, while retaining original retrieval times.

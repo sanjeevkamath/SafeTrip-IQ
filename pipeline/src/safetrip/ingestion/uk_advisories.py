@@ -18,8 +18,8 @@ UK_ALIASES = {'usa': 'USA', 'palestine': 'PSE', 'cape verde': 'CPV',
               'bonaire/st eustatius/saba': 'BES',
               'st helena, ascension and tristan da cunha': 'SHN'}
 MULTI_DESTINATIONS = {'st-martin-and-st-barthelemy': ['MAF', 'BLM'],
-                      'cook-islands-tokelau-and-niue': ['COK', 'TKL', 'NIU'],
-                      'antarctica-british-antarctic-territory': ['ATA']}
+                      'cook-islands-tokelau-and-niue': ['COK', 'TKL', 'NIU']}
+CANONICAL_DESTINATIONS = {'antarctica-british-antarctic-territory': 'ATA'}
 
 
 class ParagraphParser(HTMLParser):
@@ -70,7 +70,8 @@ def destination(country):
     slug, name = country['slug'], country['name']
     if slug in MULTI_DESTINATIONS:
         return {'iso3': None, 'covered_iso3': MULTI_DESTINATIONS[slug], 'mapping_review_required': True}
-    iso3 = UK_ALIASES.get(name.lower()) or resolve_iso3(name, None, allow_regions=True)
+    iso3 = (CANONICAL_DESTINATIONS.get(slug) or UK_ALIASES.get(name.lower())
+            or resolve_iso3(name, None, allow_regions=True))
     return {'iso3': iso3, 'covered_iso3': [iso3], 'mapping_review_required': False}
 
 

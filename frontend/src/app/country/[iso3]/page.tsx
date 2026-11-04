@@ -1,7 +1,8 @@
-import { getCountryDetails } from '@/lib/server/queries'
+import { getCountryDetails, getCountryAdvisories } from '@/lib/server/queries'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import SafetyScoreDetails from '@/components/SafetyScoreDetails'
+import OfficialAdvisories from '@/components/OfficialAdvisories'
 
 interface PageProps {
     params: Promise<{
@@ -15,6 +16,8 @@ export default async function CountryPage({ params }: PageProps) {
     const details = await getCountryDetails(iso3)
     if (!details) notFound()
     const { country, score, culture } = details
+    const showAdvisories = process.env.SAFETRIP_ADVISORIES_ENABLED === '1'
+    const advisories = showAdvisories ? await getCountryAdvisories(country.iso3).catch(() => null) : null
 
     // Helper function to safely parse fields that might be JSON arrays or plain strings
     const parseField = (field: string | null | undefined): string[] => {
@@ -127,6 +130,8 @@ export default async function CountryPage({ params }: PageProps) {
                         </div>
                     </div>
                 </div>
+
+                {showAdvisories && <OfficialAdvisories sources={advisories?.sources ?? null} />}
 
                 {culture && (
                     <>

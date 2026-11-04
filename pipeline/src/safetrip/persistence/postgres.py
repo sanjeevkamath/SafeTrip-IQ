@@ -4,6 +4,20 @@ Imports stay lazy so CLI help and lightweight tests need no database libraries.
 """
 from datetime import datetime, timezone
 from contextlib import contextmanager
+import re
+
+
+def writer_url_allowed(parsed):
+    if parsed.drivername != 'postgresql+psycopg':
+        return False
+    if {'user', 'password', 'host', 'port', 'dbname', 'service'} & parsed.query.keys():
+        return False  # Do not let driver query parameters override the checked identity/target.
+    if parsed.username == 'safetrip_writer':
+        return True
+    return bool(parsed.host and parsed.host.endswith('.pooler.supabase.com')
+                and parsed.port == 5432
+                and parsed.query.get('sslmode') == 'verify-full'
+                and re.fullmatch(r'safetrip_writer\.[a-z0-9]+', parsed.username or ''))
 
 TABLE_COLUMNS = {
     "culture": {"iso3", "cities", "cultural_safety_notes", "currency", "donts", "dos", "etiquette", "food", "greeting", "language", "overview", "religion"},
@@ -31,7 +45,7 @@ class PostgresPublisher:
         from sqlalchemy.engine import make_url
         from sqlalchemy.pool import NullPool
         parsed = make_url(url)
-        if parsed.drivername != "postgresql+psycopg" or parsed.username != "safetrip_writer":
+        if not writer_url_allowed(parsed):
             raise ValueError("A PostgreSQL writer account and psycopg URL are required.")
         # A one-shot batch job needs one connection, not a long-lived pool.
         self.engine = create_engine(parsed, poolclass=NullPool, hide_parameters=True,

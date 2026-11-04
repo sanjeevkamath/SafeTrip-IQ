@@ -1,8 +1,30 @@
 import 'server-only'
 import { Pool } from 'pg'
-import type { Country, Score, Culture } from './types'
+import type { Country, Score, Culture, AdvisorySummary } from './types'
+import { advisoryReader } from './advisory-reader'
 
 const state = globalThis as typeof globalThis & { safetripReaderPool?: Pool }
+
+export async function getCountryAdvisories(iso3: string) {
+    const db = process.env.SAFETRIP_ADVISORY_DATABASE_URL ? advisoryReader() : reader()
+    const country = await db.query<Pick<Country, 'iso3' | 'name'>>(
+        'SELECT iso3, name FROM public.countries WHERE iso3 = $1', [iso3])
+    if (!country.rows[0]) return null
+    const result = await db.query<AdvisorySummary>(`SELECT iso3, document_id, version_id,
+        source, source_url, source_public_updated_at, source_updated_at, source_reviewed_at,
+        fetched_at, us_level, uk_alert_status, coverage_scope, region_label
+        FROM public.advisory_summaries WHERE iso3 = $1
+        ORDER BY source, document_id, coverage_scope, region_label`, [iso3])
+    return { country: country.rows[0], sources: {
+        us_state: sourceSummary('us_state'), uk_fcdo: sourceSummary('uk_fcdo'),
+    } }
+
+    function sourceSummary(source: AdvisorySummary['source']) {
+        const documents = result.rows.filter(row => row.source === source)
+        // Absence here says nothing about safety, withdrawal, or unresolved mappings.
+        return { status: documents.length ? 'available' : 'not_available', documents }
+    }
+}
 
 export async function getRefreshStatus() {
     const { rows } = await reader().query(`SELECT published_at, source_kind,

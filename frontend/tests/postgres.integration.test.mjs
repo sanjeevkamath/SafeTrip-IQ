@@ -46,6 +46,35 @@ test('real reader query returns seeded map/search data', async () => {
     assert.equal((await db.listCountryScores('_')).length, 0)
 })
 
+test('advisory query preserves source boundaries and rejects unsupported hosted reads', async () => {
+    const db = queries()
+    assert.equal(await db.getCountryAdvisories('ZZZ'), null)
+    assert.equal(await db.getCountryAdvisories("CAN' OR true --"), null)
+    const result = await db.getCountryAdvisories('CAN')
+    assert.equal(result.country.iso3, 'CAN')
+    for (const source of ['us_state', 'uk_fcdo']) {
+        const summary = result.sources[source]
+        assert.equal(summary.status, summary.documents.length ? 'available' : 'not_available')
+        for (const document of summary.documents) {
+            assert.equal(document.source, source)
+            assert.equal(document.iso3, 'CAN')
+            assert.ok(['parts', 'whole_country'].includes(document.coverage_scope))
+            for (const field of ['raw_payload', 'metadata', 'input_payload', 'body']) {
+                assert.equal(Object.hasOwn(document, field), false)
+            }
+        }
+    }
+    await assert.rejects(queries({SAFETRIP_DB_BACKEND:'supabase'}).getCountryAdvisories('CAN'),
+        { message: 'Travel data is temporarily unavailable.' })
+})
+
+test('dedicated advisory reader works alongside the legacy backend', async () => {
+    const db = queries({SAFETRIP_DB_BACKEND:'supabase',SAFETRIP_ADVISORY_DATABASE_URL:localUrl})
+    const result = await db.getCountryAdvisories('CAN')
+    assert.equal(result.country.iso3,'CAN')
+    assert.ok(result.sources.uk_fcdo)
+})
+
 test('country details preserve missing country and missing optional data', async () => {
     const db = queries()
     assert.equal(await db.getCountryDetails('ZZZ'), null)
