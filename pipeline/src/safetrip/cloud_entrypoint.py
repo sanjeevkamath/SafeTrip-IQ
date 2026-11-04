@@ -5,6 +5,10 @@ import sys
 
 
 def main():
+    # V2 source ingestion is model-free even when an old task supplies S3 model settings.
+    if len(sys.argv) > 1 and sys.argv[1] in {"capture-advisories", "ingest-advisories"}:
+        os.execvp("safetrip", ["safetrip", *sys.argv[1:]])
+        return 0
     from safetrip.inference.s3_checkpoint import bootstrap_from_environment
     try:
         report = bootstrap_from_environment()

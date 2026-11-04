@@ -82,4 +82,4 @@ AWS image publishing and weekly scheduling are deferred; no account upgrade is r
 
 Migration `0006` adds a private `advisory` schema with source documents, immutable versions, coverage, fetch observations, paragraphs, analyses, and evidence references. Local tests verify isolation, source-specific official warnings, deduplication, history, and evidence provenance. Existing public scores and hosted Supabase are unchanged.
 
-Next: connect the source adapters to this storage with transactional, repeatable ingestion; then build the source comparison queries/UI. The existing pilot is read-only and is not yet the production ingestion path. Repository consolidation remains a feature-completion requirement.
+The source adapters are now connected through model-free capture, validation, preview, and atomic private ingestion; see [us-uk-ingestion.md](us-uk-ingestion.md). Local tests cover replay, versioning, and rollback. Next: approved source comparison queries/UI and a hosted-schema migration plan. The earlier NLP pilot remains research-only. Repository consolidation remains a feature-completion requirement.

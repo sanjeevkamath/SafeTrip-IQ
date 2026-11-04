@@ -13,9 +13,9 @@ ALIASES = {
     "kingdom of denmark": "DNK", "czech republic": "CZE", "czechia": "CZE",
     "sint maarten": "SXM", "british virgin islands": "VGB", "cabo verde": "CPV",
     "french saint martin": "MAF", "saint kitts and nevis": "KNA",
-    "west bank": "PSE", "gaza": "PSE", "saba": "BES", "bonaire": "BES",
+    "west bank": "PSE", "the west bank": "PSE", "gaza": "PSE", "saba": "BES", "bonaire": "BES",
 }
-MANUAL_NAMES = {"czechia", "federated states of micronesia", "macau", "kingdom of denmark", "french west indies", "west bank", "gaza", "saba", "bonaire"}
+MANUAL_NAMES = {"czechia", "federated states of micronesia", "macau", "kingdom of denmark", "french west indies", "west bank", "the west bank", "gaza", "saba", "bonaire"}
 VERIFIED_TAG_ALIASES = {"KH": "KHM"}  # Current feed also retains the legacy CB tag for Cambodia.
 
 
@@ -27,7 +27,7 @@ def normalized_name(name):
 def resolve_iso3(country_name, country_code, iso_map=None, *, allow_regions=False):
     from .advisories import US_CODE_TO_ISO3, normalize_country_name
     key = normalized_name(country_name)
-    if key in {"west bank", "gaza", "saba", "bonaire"} and not allow_regions:
+    if key in {"west bank", "the west bank", "gaza", "saba", "bonaire"} and not allow_regions:
         raise ValueError("Territory advisories require an explicit region aggregation policy before country publication.")
     named = ALIASES.get(key) or NAME_TO_ISO3.get(key)
     if not named and iso_map:

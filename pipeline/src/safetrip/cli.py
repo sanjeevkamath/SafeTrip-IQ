@@ -31,7 +31,19 @@ def main(argv=None):
         if name in {"score", "refresh"}:
             command.add_argument("--model-path", help="Local checkpoint; defaults to SAFETRIP_MODEL_PATH or results/checkpoint-189.")
             command.add_argument("--publish-scores", action="store_true", help="With --write and Postgres, also recalculate final scores in the same transaction.")
+    capture = commands.add_parser("capture-advisories", help="Capture US/UK source responses without database access.")
+    scope = capture.add_mutually_exclusive_group(required=True)
+    scope.add_argument("--iso3", action="append", help="Requested ISO3; repeat for multiple destinations.")
+    scope.add_argument("--all", action="store_true", help="Capture the full destination index and US feed.")
+    capture.add_argument("--output", required=True, help="New private capture JSON path, preferably under .local/.")
+    ingestion = commands.add_parser("ingest-advisories", help="Preview a capture or ingest it into private PostgreSQL tables.")
+    ingestion.add_argument("--input", required=True, help="Complete capture-advisories JSON artifact.")
+    ingestion.add_argument("--output", required=True, help="New preview/result JSON path.")
+    ingestion.add_argument("--write", action="store_true", help="Write private advisory history using the PostgreSQL writer; never calculate scores.")
     args = parser.parse_args(argv)
+    if args.command in {"capture-advisories", "ingest-advisories"}:
+        from safetrip.advisory_cli import run
+        return run(args)
     final_scores = getattr(args, "publish_scores", False)
     if final_scores and not args.write:
         parser.error("--publish-scores requires --write; use publish-scores to preview stored components.")

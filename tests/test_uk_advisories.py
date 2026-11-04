@@ -28,6 +28,11 @@ class UKAdvisoryTests(unittest.TestCase):
         self.assertEqual(result['covered_iso3'],['MAF','BLM'])
         self.assertTrue(result['mapping_review_required'])
 
+    def test_antarctica_maps_to_approved_canonical_destination(self):
+        result=destination({'name':'Antarctica/British Antarctic Territory',
+                            'slug':'antarctica-british-antarctic-territory'})
+        self.assertEqual(result,{'iso3':'ATA','covered_iso3':['ATA'],'mapping_review_required':False})
+
     def test_html_boundaries_entities_and_hidden_content(self):
         result=paragraphs('<h2>Crime</h2><p>Robbery &amp; theft.</p><script>Danger</script><p>Use caution.</p>')
         self.assertEqual(result,[{'heading':'Crime','text':'Robbery & theft.'},{'heading':'Crime','text':'Use caution.'}])

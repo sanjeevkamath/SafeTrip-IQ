@@ -1,0 +1,38 @@
+{
+  "format": "safetrip-advisory-capture-v1",
+  "iso3": [
+    "CAN",
+    "JPN"
+  ],
+  "complete": true,
+  "captures": [
+    {
+      "source": "uk_index",
+      "url": "https://www.gov.uk/api/content/foreign-travel-advice",
+      "fetched_at": "2026-11-03T12:00:00+00:00",
+      "sha256": "150da7855ad71c8656400dc9ad1a870f0ea68152a877665011576de3d30087a4",
+      "body_base64": "eyJkb2N1bWVudF90eXBlIjogInRyYXZlbF9hZHZpY2VfaW5kZXgiLCAibGlua3MiOiB7ImNoaWxkcmVuIjogW3siY29udGVudF9pZCI6ICJmaXh0dXJlLXVrLUNBTiIsICJiYXNlX3BhdGgiOiAiL2ZvcmVpZ24tdHJhdmVsLWFkdmljZS9jYW5hZGEiLCAiZGV0YWlscyI6IHsiY291bnRyeSI6IHsibmFtZSI6ICJDYW5hZGEiLCAic2x1ZyI6ICJjYW5hZGEifX19LCB7ImNvbnRlbnRfaWQiOiAiZml4dHVyZS11ay1KUE4iLCAiYmFzZV9wYXRoIjogIi9mb3JlaWduLXRyYXZlbC1hZHZpY2UvamFwYW4iLCAiZGV0YWlscyI6IHsiY291bnRyeSI6IHsibmFtZSI6ICJKYXBhbiIsICJzbHVnIjogImphcGFuIn19fV19fQ=="
+    },
+    {
+      "source": "us_state",
+      "url": "https://travel.state.gov/_res/rss/TAsTWs.xml",
+      "fetched_at": "2026-11-03T12:00:00+00:00",
+      "sha256": "757715587906849489e05f25dcb8d67589267105851283ef653f7cf1872f521c",
+      "body_base64": "PHJzcz48Y2hhbm5lbD48aXRlbT48dGl0bGU+Q2FuYWRhIC0gTGV2ZWwgMTogRXhlcmNpc2UgTm9ybWFsIFByZWNhdXRpb25zPC90aXRsZT48Z3VpZD5odHRwczovL3RyYXZlbC5zdGF0ZS5nb3YvY29udGVudC90c2dfYWVtL3VzL2VuL2hvbWUvaW50ZXJuYXRpb25hbC10cmF2ZWwvdHJhdmVsLWFkdmlzb3JpZXMvZGVzdGluYXRpb24uY2FuLmh0bWw8L2d1aWQ+PGxpbms+aHR0cHM6Ly90cmF2ZWwuc3RhdGUuZ292L2NvbnRlbnQvdHNnX2FlbS91cy9lbi9ob21lL2ludGVybmF0aW9uYWwtdHJhdmVsL3RyYXZlbC1hZHZpc29yaWVzL2Rlc3RpbmF0aW9uLmNhbi5odG1sPC9saW5rPjxjYXRlZ29yeSBkb21haW49IkNvdW50cnktVGFnIj5DQTwvY2F0ZWdvcnk+PHB1YkRhdGU+U3VuLCAwMSBOb3YgMjAyNjwvcHViRGF0ZT48ZGVzY3JpcHRpb24+Jmx0O3AmZ3Q7UmVnaW9uYWwgTGV2ZWwgNCBoZWFsdGggbm90aWNlcyBhcmUgc2VwYXJhdGUgZnJvbSB0aGUgY291bnRyeSBhZHZpc29yeS4gVGhlZnQgb2NjdXJzLiZsdDsvcCZndDs8L2Rlc2NyaXB0aW9uPjwvaXRlbT48aXRlbT48dGl0bGU+SmFwYW4gLSBMZXZlbCAxOiBFeGVyY2lzZSBOb3JtYWwgUHJlY2F1dGlvbnM8L3RpdGxlPjxndWlkPmh0dHBzOi8vdHJhdmVsLnN0YXRlLmdvdi9jb250ZW50L3RzZ19hZW0vdXMvZW4vaG9tZS9pbnRlcm5hdGlvbmFsLXRyYXZlbC90cmF2ZWwtYWR2aXNvcmllcy9kZXN0aW5hdGlvbi5qcG4uaHRtbDwvZ3VpZD48bGluaz5odHRwczovL3RyYXZlbC5zdGF0ZS5nb3YvY29udGVudC90c2dfYWVtL3VzL2VuL2hvbWUvaW50ZXJuYXRpb25hbC10cmF2ZWwvdHJhdmVsLWFkdmlzb3JpZXMvZGVzdGluYXRpb24uanBuLmh0bWw8L2xpbms+PGNhdGVnb3J5IGRvbWFpbj0iQ291bnRyeS1UYWciPkpBPC9jYXRlZ29yeT48cHViRGF0ZT5TdW4sIDAxIE5vdiAyMDI2PC9wdWJEYXRlPjxkZXNjcmlwdGlvbj4mbHQ7cCZndDtSZWdpb25hbCBMZXZlbCA0IGhlYWx0aCBub3RpY2VzIGFyZSBzZXBhcmF0ZSBmcm9tIHRoZSBjb3VudHJ5IGFkdmlzb3J5LiBUaGVmdCBvY2N1cnMuJmx0Oy9wJmd0OzwvZGVzY3JpcHRpb24+PC9pdGVtPjwvY2hhbm5lbD48L3Jzcz4="
+    },
+    {
+      "source": "uk_fcdo",
+      "url": "https://www.gov.uk/api/content/foreign-travel-advice/canada",
+      "fetched_at": "2026-11-03T12:00:00+00:00",
+      "sha256": "bc72f6d1c3dde3a822e9b4acce78877b462eeb24338aca7b372170a30dfaa10b",
+      "body_base64": "eyJkb2N1bWVudF90eXBlIjogInRyYXZlbF9hZHZpY2UiLCAiY29udGVudF9pZCI6ICJmaXh0dXJlLXVrLUNBTiIsICJiYXNlX3BhdGgiOiAiL2ZvcmVpZ24tdHJhdmVsLWFkdmljZS9jYW5hZGEiLCAicHVibGljX3VwZGF0ZWRfYXQiOiAiMjAyNi0xMS0wMVQxMjowMDowMFoiLCAiZGV0YWlscyI6IHsiY291bnRyeSI6IHsibmFtZSI6ICJDYW5hZGEiLCAic2x1ZyI6ICJjYW5hZGEifSwgImFsZXJ0X3N0YXR1cyI6IFtdLCAidXBkYXRlZF9hdCI6ICIyMDI2LTExLTAxVDEyOjAwOjAwWiIsICJyZXZpZXdlZF9hdCI6ICIyMDI2LTExLTAxVDEyOjAwOjAwWiIsICJwYXJ0cyI6IFt7InNsdWciOiAic2FmZXR5LWFuZC1zZWN1cml0eSIsICJ0aXRsZSI6ICJTYWZldHkgYW5kIHNlY3VyaXR5IiwgImJvZHkiOiAiPGgyPkNyaW1lPC9oMj48cD5UaGVmdCBvY2N1cnMgaW4gY3Jvd2RlZCBhcmVhcy48L3A+In0sIHsic2x1ZyI6ICJlbnRyeS1yZXF1aXJlbWVudHMiLCAidGl0bGUiOiAiRW50cnkgcmVxdWlyZW1lbnRzIiwgImJvZHkiOiAiPHA+VmlzYSBpbmZvcm1hdGlvbiBpcyBleGNsdWRlZCBmcm9tIHJpc2sgdGV4dC48L3A+In1dfX0="
+    },
+    {
+      "source": "uk_fcdo",
+      "url": "https://www.gov.uk/api/content/foreign-travel-advice/japan",
+      "fetched_at": "2026-11-03T12:00:00+00:00",
+      "sha256": "48bee31212f668318830a618b3929dae0503785b62faa21c68785250cd8d70a0",
+      "body_base64": "eyJkb2N1bWVudF90eXBlIjogInRyYXZlbF9hZHZpY2UiLCAiY29udGVudF9pZCI6ICJmaXh0dXJlLXVrLUpQTiIsICJiYXNlX3BhdGgiOiAiL2ZvcmVpZ24tdHJhdmVsLWFkdmljZS9qYXBhbiIsICJwdWJsaWNfdXBkYXRlZF9hdCI6ICIyMDI2LTExLTAxVDEyOjAwOjAwWiIsICJkZXRhaWxzIjogeyJjb3VudHJ5IjogeyJuYW1lIjogIkphcGFuIiwgInNsdWciOiAiamFwYW4ifSwgImFsZXJ0X3N0YXR1cyI6IFsiYXZvaWRfYWxsX2J1dF9lc3NlbnRpYWxfdHJhdmVsX3RvX3BhcnRzIl0sICJ1cGRhdGVkX2F0IjogIjIwMjYtMTEtMDFUMTI6MDA6MDBaIiwgInJldmlld2VkX2F0IjogIjIwMjYtMTEtMDFUMTI6MDA6MDBaIiwgInBhcnRzIjogW3sic2x1ZyI6ICJzYWZldHktYW5kLXNlY3VyaXR5IiwgInRpdGxlIjogIlNhZmV0eSBhbmQgc2VjdXJpdHkiLCAiYm9keSI6ICI8aDI+Q3JpbWU8L2gyPjxwPlRoZWZ0IG9jY3VycyBpbiBjcm93ZGVkIGFyZWFzLjwvcD4ifSwgeyJzbHVnIjogImVudHJ5LXJlcXVpcmVtZW50cyIsICJ0aXRsZSI6ICJFbnRyeSByZXF1aXJlbWVudHMiLCAiYm9keSI6ICI8cD5WaXNhIGluZm9ybWF0aW9uIGlzIGV4Y2x1ZGVkIGZyb20gcmlzayB0ZXh0LjwvcD4ifV19fQ=="
+    }
+  ]
+}

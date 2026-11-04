@@ -31,3 +31,13 @@ export function getCountryDetails(iso3: string) {
 export function getRefreshStatus() {
     return read(() => adapter().getRefreshStatus())
 }
+
+export function getCountryAdvisories(iso3: string) {
+    return read(() => {
+        // The dedicated advisory connection can coexist with legacy Supabase reads.
+        if (process.env.SAFETRIP_DB_BACKEND !== 'postgres' && !process.env.SAFETRIP_ADVISORY_DATABASE_URL) {
+            throw new Error('Advisory reads require the migrated PostgreSQL backend.')
+        }
+        return postgres.getCountryAdvisories(iso3)
+    })
+}
