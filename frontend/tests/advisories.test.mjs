@@ -8,12 +8,13 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
 const require = createRequire(import.meta.url)
-function load(path) {
+function load(path, mocks = {}, env = {}) {
     const exports = {}
     const code = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
         compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
     }).outputText
-    vm.runInNewContext(code, { exports, URL, process: {env: {}}, require(name) {
+    vm.runInNewContext(code, { exports, URL, console: {error() {}}, process: {env}, require(name) {
+        if (Object.hasOwn(mocks,name)) return mocks[name]
         return name === 'server-only' ? {} : require(name)
     } })
     return exports
@@ -65,4 +66,44 @@ test('hosted reader connection requires exact role, session pooler and verified 
     }
     assert.throws(() => advisoryPoolOptions(url))
     assert.equal(advisoryPoolOptions('postgresql://safetrip_reader@127.0.0.1:55432/test').ssl,undefined)
+})
+
+test('affected areas preserve official exceptions, escape text, and have an honest fallback', () => {
+    const uk={...document,source:'uk_fcdo',source_url:'https://www.gov.uk/example',
+        uk_alert_status:['avoid_all_but_essential_travel_to_parts'],warning_excerpts:[{
+            version_id:'v1',extractor_version:'uk-warning-areas-v1',section_slug:'warnings-and-insurance',
+            paragraph_index:2,warning_heading:'Areas where FCDO advises against all but essential travel',
+            heading:'Border province',body:'Within 1km, except official border crossings. <script>unsafe()</script>',
+        }]}
+    const html=render(data([],[uk]))
+    assert.match(html,/<details/)
+    assert.match(html,/Affected areas/)
+    assert.match(html,/Within 1km, except official border crossings/)
+    assert.match(html,/&lt;script&gt;/)
+    assert.ok(!html.includes('<script>unsafe()'))
+    assert.match(render(data([],[{...uk,warning_excerpts:[]}])),/Affected areas could not be listed/)
+    assert.match(render(data([],[{...uk,warning_excerpts:null}])),/Affected areas could not be listed/)
+    assert.ok(!render(data([],[{...uk,uk_alert_status:[]}])).includes('<details'))
+})
+
+test('optional excerpt failure retains official warnings and filters excerpts by exact version', async () => {
+    for (const fail of [false,true]) {
+        const uk={...document,iso3:'CAN',source:'uk_fcdo',uk_alert_status:['avoid_all_travel_to_parts']}
+        const db={async query(sql) {
+            if (sql.includes('FROM public.countries')) return {rows:[{iso3:'CAN',name:'Canada'}]}
+            if (sql.includes('FROM public.advisory_summaries')) return {rows:[uk]}
+            if (sql.includes('FROM public.advisory_warning_excerpts')) {
+                if(fail) throw new Error('Synthetic unavailable optional projection')
+                return {rows:[{version_id:'v1',body:'Current official wording'}, {version_id:'old',body:'Old wording'}]}
+            }
+            throw new Error('Unexpected query')
+        }}
+        const api=load('../src/lib/server/postgres-queries.ts',{'./advisory-reader':{advisoryReader:()=>db}},
+            {SAFETRIP_ADVISORY_DATABASE_URL:'synthetic-reader'})
+        const result=await api.getCountryAdvisories('CAN')
+        assert.equal(result.sources.uk_fcdo.documents.length,1)
+        const excerpts=result.sources.uk_fcdo.documents[0].warning_excerpts
+        if(fail) assert.equal(excerpts,null)
+        else { assert.equal(excerpts.length,1);assert.equal(excerpts[0].body,'Current official wording') }
+    }
 })

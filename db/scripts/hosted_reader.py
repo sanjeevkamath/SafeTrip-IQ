@@ -55,7 +55,8 @@ def check_reader_grants(conn):
     tables=conn.execute("""SELECT c.oid, n.nspname||'.'||c.relname FROM pg_class c
         JOIN pg_namespace n ON n.oid=c.relnamespace
         WHERE n.nspname IN ('public','advisory') AND c.relkind IN ('r','p','v','m')""").fetchall()
-    approved={'public.countries','public.culture','public.scores','public.advisory_summaries'}
+    approved={'public.countries','public.culture','public.scores','public.advisory_summaries',
+              'public.advisory_warning_excerpts'}
     for oid, table in tables:
         # Text relation names require schema USAGE during lookup. The reader
         # intentionally lacks that for advisory; use the catalog OID instead.

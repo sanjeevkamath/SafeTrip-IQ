@@ -1,4 +1,4 @@
-import type { AdvisorySummary } from '@/lib/server/types'
+import type { AdvisorySummary, WarningExcerpt } from '@/lib/server/types'
 
 type SourceData = { status: string; documents: AdvisorySummary[] }
 type Props = { sources: { us_state: SourceData; uk_fcdo: SourceData } | null }
@@ -26,6 +26,35 @@ function sourceLink(document: AdvisorySummary) {
     } catch { return null }
 }
 
+function AffectedAreas({ excerpts }: { excerpts: WarningExcerpt[] | null | undefined }) {
+    if (!excerpts?.length) return <p className="text-sm text-gray-600 mt-3">Affected areas could not be listed here. Read the full UK advice for geographic limits and exceptions.</p>
+    const groups: { warning: string; areas: { heading: string | null; paragraphs: WarningExcerpt[] }[] }[] = []
+    for (const excerpt of excerpts) {
+        let group = groups[groups.length - 1]
+        if (!group || group.warning !== excerpt.warning_heading) {
+            group = { warning: excerpt.warning_heading, areas: [] }; groups.push(group)
+        }
+        let area = group.areas[group.areas.length - 1]
+        if (!area || area.heading !== excerpt.heading) {
+            area = { heading: excerpt.heading, paragraphs: [] }; group.areas.push(area)
+        }
+        area.paragraphs.push(excerpt)
+    }
+    return <details className="mt-4 rounded-lg border border-slate-200 p-3">
+        <summary className="cursor-pointer font-semibold text-indigo-700">Affected areas</summary>
+        <p className="text-sm text-gray-600 mt-3">Official UK wording, including geographic limits and exceptions. This may include context about neighbouring areas.</p>
+        <div className="mt-3 space-y-5">
+            {groups.map((group, i) => <div key={i}>
+                <h4 className="font-semibold text-gray-900">{group.warning}</h4>
+                {group.areas.map((area, j) => <div key={j} className="mt-3 space-y-2">
+                    {area.heading && area.heading !== group.warning && <h5 className="font-semibold text-gray-800">{area.heading}</h5>}
+                    {area.paragraphs.map(p => <p key={`${p.section_slug}-${p.paragraph_index}`} className="text-sm leading-relaxed text-gray-700">{p.body}</p>)}
+                </div>)}
+            </div>)}
+        </div>
+    </details>
+}
+
 export default function OfficialAdvisories({ sources }: Props) {
     return <section aria-labelledby="official-advice-title" className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-8">
         <h2 id="official-advice-title" className="text-2xl font-bold text-gray-900 mb-2">Official travel advice</h2>
@@ -47,6 +76,7 @@ export default function OfficialAdvisories({ sources }: Props) {
                                             : document.uk_alert_status === null ? <p className="text-gray-900">Warning status not provided. Read the source advice.</p>
                                                 : document.uk_alert_status.length ? <ul className="list-disc pl-5 text-gray-900 space-y-2">{document.uk_alert_status.map(flag => <li key={flag}>{ukWarnings[flag] ?? 'Warning status requires review; read the source advice'}</li>)}</ul>
                                                 : <p className="text-gray-900">No travel-restriction flags recorded. Other risks and guidance may still apply.</p>}
+                                        {source === 'uk_fcdo' && document.uk_alert_status?.some(flag => flag.endsWith('_parts')) && <AffectedAreas excerpts={document.warning_excerpts} />}
                                         <dl className="text-sm text-gray-600 mt-3 space-y-1">
                                             <div><dt className="inline font-medium">Source published/updated: </dt><dd className="inline">{date(document.source_public_updated_at ?? document.source_updated_at)}</dd></div>
                                             {document.source_reviewed_at && <div><dt className="inline font-medium">Source reviewed: </dt><dd className="inline">{date(document.source_reviewed_at)}</dd></div>}

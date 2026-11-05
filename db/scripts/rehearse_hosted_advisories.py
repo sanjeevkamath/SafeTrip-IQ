@@ -47,6 +47,10 @@ def main():
         script=ROOT/'db/hosted/001_advisory_foundation.sql'
         assert script.read_text()==render(), 'Generated migration is stale'
         sql(script.read_text())
+        from build_warning_areas import render as render_warning_areas
+        area_script=ROOT/'db/hosted/002_uk_warning_areas.sql'
+        assert area_script.read_text()==render_warning_areas()
+        sql(area_script.read_text())
         assert sql('SELECT count(*) FROM countries').stdout.strip()=='5'
         assert sql("SELECT safe_trip_score FROM scores WHERE iso3='CAN'").stdout.strip()=='10'
         assert sql("SELECT rolcanlogin FROM pg_roles WHERE rolname='safetrip_writer'").stdout.strip()=='f'

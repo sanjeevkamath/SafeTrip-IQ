@@ -107,7 +107,7 @@ class LocalDatabaseTests(unittest.TestCase):
                         count = conn.execute("SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename != 'alembic_version'").fetchone()[0]
                         self.assertEqual(count, 0 if operation == "downgrade" else 10)
                         private_count = conn.execute("SELECT count(*) FROM pg_tables WHERE schemaname='advisory'").fetchone()[0]
-                        self.assertEqual(private_count, 0 if operation == "downgrade" else 7)
+                        self.assertEqual(private_count, 0 if operation == "downgrade" else 8)
             finally:
                 admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(database)))
 

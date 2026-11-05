@@ -1,6 +1,6 @@
 import 'server-only'
 import { Pool } from 'pg'
-import type { Country, Score, Culture, AdvisorySummary } from './types'
+import type { Country, Score, Culture, AdvisorySummary, WarningExcerpt } from './types'
 import { advisoryReader } from './advisory-reader'
 
 const state = globalThis as typeof globalThis & { safetripReaderPool?: Pool }
@@ -15,12 +15,29 @@ export async function getCountryAdvisories(iso3: string) {
         fetched_at, us_level, uk_alert_status, coverage_scope, region_label
         FROM public.advisory_summaries WHERE iso3 = $1
         ORDER BY source, document_id, coverage_scope, region_label`, [iso3])
+    let excerpts: WarningExcerpt[] | null = []
+    const regional = result.rows.filter(row => row.source === 'uk_fcdo' && row.uk_alert_status?.some(flag => flag.endsWith('_parts')))
+    if (regional.length) {
+        try {
+            excerpts = (await db.query<WarningExcerpt>(`SELECT version_id, extractor_version,
+                section_slug, paragraph_index, warning_heading, heading, body
+                FROM public.advisory_warning_excerpts WHERE iso3=$1 AND version_id=ANY($2::uuid[])
+                ORDER BY version_id, section_slug, paragraph_index`, [iso3, regional.map(row => row.version_id)])).rows
+        } catch {
+            // Keep the existing official cards available during staged rollout
+            // or a failure of the optional excerpt projection. Never log SQL.
+            console.error('Official warning excerpts are temporarily unavailable')
+            excerpts = null
+        }
+    }
     return { country: country.rows[0], sources: {
         us_state: sourceSummary('us_state'), uk_fcdo: sourceSummary('uk_fcdo'),
     } }
 
     function sourceSummary(source: AdvisorySummary['source']) {
-        const documents = result.rows.filter(row => row.source === source)
+        const documents = result.rows.filter(row => row.source === source).map(row => ({...row,
+            warning_excerpts: row.source === 'uk_fcdo' ? excerpts?.filter(e => e.version_id === row.version_id) ?? null : [],
+        }))
         // Absence here says nothing about safety, withdrawal, or unresolved mappings.
         return { status: documents.length ? 'available' : 'not_available', documents }
     }

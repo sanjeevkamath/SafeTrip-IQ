@@ -19,6 +19,16 @@ export type AdvisorySummary = {
     uk_alert_status: string[] | null
     coverage_scope: 'whole_country' | 'parts'
     region_label: string | null
+    warning_excerpts?: WarningExcerpt[] | null
+}
+export type WarningExcerpt = {
+    version_id: string
+    extractor_version: string
+    section_slug: string
+    paragraph_index: number
+    warning_heading: string
+    heading: string | null
+    body: string
 }
 export type Score = {
     iso3: string

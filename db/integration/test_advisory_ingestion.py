@@ -50,7 +50,7 @@ class AdvisoryIngestionTests(unittest.TestCase):
         with connect('admin') as conn:
             docs=[r[0] for r in conn.execute('SELECT document_id FROM advisory.documents WHERE source_key=ANY(%s)',(self.keys,))]
             versions=[r[0] for r in conn.execute('SELECT version_id FROM advisory.versions WHERE document_id=ANY(%s)',(docs,))]
-            for table in ['evidence','analyses','paragraphs','coverage']:
+            for table in ['warning_excerpts','evidence','analyses','paragraphs','coverage']:
                 conn.execute(f'DELETE FROM advisory.{table} WHERE version_id=ANY(%s)',(versions,))
             conn.execute('DELETE FROM advisory.observations WHERE document_id=ANY(%s)',(docs,))
             conn.execute('DELETE FROM advisory.versions WHERE document_id=ANY(%s)',(docs,))
@@ -86,6 +86,31 @@ class AdvisoryIngestionTests(unittest.TestCase):
                 WHERE d.source_key=%s''',(self.prefix+'-japan',))]
             self.assertIn('Theft occurs in crowded areas.',bodies)
             self.assertIn('New flooding affects transport.',bodies)
+
+    def test_official_warning_excerpt_projection_is_current_read_only_and_provenance_linked(self):
+        capture=self.bundle['captures'][-1];obj=json.loads(decode_capture(capture))
+        obj['details']['alert_status']=['avoid_all_travel_to_parts']
+        obj['details']['parts'].append({'slug':'warnings-and-insurance','title':'Warnings and insurance',
+            'body':'<h2>Areas where FCDO advises against travel</h2><h3>Border district</h3><p>Within 5km, except the main crossing.</p><h2>Before you travel</h2><p>General advice.</p>'})
+        self.bundle['captures'][-1]=envelope(capture['source'],capture['url'],json.dumps(obj).encode(),capture['fetched_at'])
+        first=self.ingest();self.ingest()
+        with connect('reader') as conn:
+            rows=conn.execute('''SELECT heading,body,extractor_version FROM public.advisory_warning_excerpts
+                WHERE iso3='JPN' AND body='Within 5km, except the main crossing.' ''').fetchall()
+            self.assertEqual(rows,[('Border district','Within 5km, except the main crossing.','uk-warning-areas-v1')])
+            self.assertFalse(conn.execute("SELECT has_table_privilege(current_user,'public.advisory_warning_excerpts','INSERT')").fetchone()[0])
+        # New content keeps the old version privately, but its old excerpt must
+        # disappear from the current display projection.
+        obj['details']['parts'][-1]['body']='<h2>Areas where FCDO advises against travel</h2><h3>Border district</h3><p>Within 10km, except the main crossing.</p>'
+        self.bundle['captures'][-1]=envelope(capture['source'],capture['url'],json.dumps(obj).encode(),capture['fetched_at'])
+        self.ingest()
+        with connect('writer') as conn:
+            self.assertEqual(conn.execute('''SELECT count(*) FROM advisory.warning_excerpts w
+                JOIN advisory.versions v USING(version_id) JOIN advisory.documents d USING(document_id)
+                WHERE d.source_key=%s''',(self.prefix+'-japan',)).fetchone()[0],2)
+        with connect('reader') as conn:
+            current=conn.execute("SELECT body FROM public.advisory_warning_excerpts WHERE iso3='JPN' AND body LIKE 'Within %km, except the main crossing.'").fetchall()
+            self.assertEqual(current,[('Within 10km, except the main crossing.',)])
 
     def test_mid_batch_error_rolls_back_every_document_but_keeps_raw_and_failure(self):
         from sqlalchemy import event
