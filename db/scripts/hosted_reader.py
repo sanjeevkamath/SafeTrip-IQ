@@ -111,28 +111,39 @@ def setup():
     print('Credential saved privately under .local/supabase/. Vercel and writer settings unchanged.')
 
 
-def dev():
+def web_environment(config):
     from sqlalchemy.engine import URL
+    validate(config)
+    url=URL.create('postgresql',username=config['user'],
+        password=config['password'],host=config['host'],port=int(config['port']),database=config['dbname']).render_as_string(hide_password=False)
+    return {'SAFETRIP_ADVISORIES_ENABLED':'1', 'SAFETRIP_ADVISORY_DATABASE_URL':url,
+            'SAFETRIP_ADVISORY_DATABASE_CA':CA.read_text()}
+
+
+def dev():
     config=read_config()
     with connect(config) as conn: check_reader(conn)
-    env=os.environ.copy()
-    env['SAFETRIP_ADVISORIES_ENABLED']='1'
-    env['SAFETRIP_ADVISORY_DATABASE_URL']=URL.create('postgresql',username=config['user'],
-        password=config['password'],host=config['host'],port=int(config['port']),database=config['dbname']).render_as_string(hide_password=False)
-    env['SAFETRIP_ADVISORY_DATABASE_CA']=CA.read_text()
+    env={**os.environ,**web_environment(config)}
     print('Starting local website with hosted read-only advisories. No Vercel settings changed.',flush=True)
     return subprocess.call(['npm','run','dev'],cwd=ROOT/'frontend',env=env)
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=['setup','check','dev'])
+    parser.add_argument('command',choices=['setup','check','dev','copy-env'])
+    parser.add_argument('--name',choices=['SAFETRIP_ADVISORIES_ENABLED',
+        'SAFETRIP_ADVISORY_DATABASE_URL','SAFETRIP_ADVISORY_DATABASE_CA'])
     args=parser.parse_args()
+    if args.command=='copy-env' and not args.name: parser.error('copy-env requires --name')
     try:
         if args.command=='setup': setup()
         elif args.command=='check':
             with connect(read_config()) as conn: count=check_reader(conn)
             print(f'Reader identity, TLS, view reads and restricted permissions verified. Display rows: {count}.')
+        elif args.command=='copy-env':
+            value=web_environment(read_config())[args.name]
+            subprocess.run(['pbcopy'],input=value,text=True,check=True)
+            print(f'{args.name} copied to the clipboard. Paste only into the matching server-side Vercel environment field; do not share it.')
         else: return dev()
         return 0
     except KeyboardInterrupt: return 130

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from types import SimpleNamespace
 from urllib.parse import urlsplit, parse_qs
 
@@ -59,6 +59,44 @@ class HostedWriterTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     hosted.ingest(SimpleNamespace(input=str(path),output=str(Path(directory)/'result.json')))
                 credentials.assert_not_called()
+
+    def test_full_import_requires_matching_capture_plan_before_credentials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle=json.loads((ROOT/'tests/fixtures/us_uk_capture.json').read_text())
+            bundle['iso3']=None
+            path=Path(directory)/'capture.json';path.write_text(json.dumps(bundle))
+            args=SimpleNamespace(input=str(path),output=str(Path(directory)/'result.json'),all_destinations=True,plan=None)
+            _,rows,report,digest=hosted.prepare_capture(args)
+            self.assertEqual(len(rows),4)
+            with patch.object(hosted,'read_config') as credentials:
+                with self.assertRaises(hosted.HostedValidationError):hosted.ingest(args)
+                credentials.assert_not_called()
+            plan={'format':'safetrip-hosted-import-plan-v1','mode':'all','input_sha256':digest,
+                  'parser_version':report['parser_version'],'sources':report['sources'],
+                  'review_required':report['review_required'],'database_written':False,
+                  'database_preflight':{'missing_country_keys':[]}}
+            args.plan=str(Path(directory)/'plan.json');Path(args.plan).write_text(json.dumps(plan))
+            hosted.verify_plan(args,report,digest)
+            for key,value in [('input_sha256','0'*64),('parser_version','old-parser'),('mode','sample')]:
+                changed={**plan,key:value};Path(args.plan).write_text(json.dumps(changed))
+                with self.subTest(key=key),self.assertRaises(hosted.HostedValidationError):
+                    hosted.verify_plan(args,report,digest)
+
+    def test_full_mode_does_not_accept_a_subset_capture(self):
+        args=SimpleNamespace(input=str(ROOT/'tests/fixtures/us_uk_capture.json'),all_destinations=True)
+        with self.assertRaises(hosted.HostedValidationError):hosted.prepare_capture(args)
+
+    def test_catalogue_preflight_rejects_missing_keys_and_reports_absent_documents(self):
+        conn=Mock()
+        rows=[{'source':'uk_fcdo','source_key':'new','coverage':[{'iso3':'CAN'}]}]
+        conn.execute.return_value.fetchall.return_value=[('JPN',)]
+        with self.assertRaises(hosted.HostedValidationError):hosted.catalogue_preflight(conn,rows)
+        conn.reset_mock()
+        conn.execute.side_effect=[Mock(fetchall=Mock(return_value=[('CAN',)])),
+                                  Mock(fetchall=Mock(return_value=[('uk_fcdo','old')]))]
+        result=hosted.catalogue_preflight(conn,rows)
+        self.assertEqual(result['previous_documents_not_in_capture'],[{'source':'uk_fcdo','source_key':'old'}])
+        self.assertTrue(all(call.args[0].startswith('SELECT ') for call in conn.execute.call_args_list))
 
 
 if __name__=='__main__': unittest.main()

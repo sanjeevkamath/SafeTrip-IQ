@@ -4,6 +4,8 @@ Reads the existing admin connection from .env only for setup. Generated writer
 credentials live in a mode-0600 ignored file, never argv, logs or SQL Editor.
 """
 import argparse
+from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -124,19 +126,100 @@ def setup():
     print('Reader login and website configuration are unchanged. Do not share the credential file.')
 
 
-def ingest(args):
-    from safetrip.ingestion.multisource import normalize_bundle
-    bundle=json.loads(Path(args.input).read_text())
-    if set(bundle.get('iso3') or []) != {'CAN','JPN','USA'}:
-        raise ValueError('Initial hosted import must be explicitly limited to CAN, JPN, USA')
+class HostedValidationError(ValueError):
+    """Controlled, credential-free rollout errors safe to show to the operator."""
+
+
+def prepare_capture(args):
+    from safetrip.ingestion.multisource import normalize_bundle, preview
+    content=Path(args.input).read_bytes()
+    bundle=json.loads(content)
+    full=getattr(args,'all_destinations',False)
+    if full:
+        if bundle.get('iso3','missing') is not None:
+            raise HostedValidationError('--all-destinations requires a complete --all capture, not a subset.')
+    elif set(bundle.get('iso3') or []) != {'CAN','JPN','USA'}:
+        raise HostedValidationError('Use the CAN/JPN/USA sample, or explicitly select --all-destinations.')
     rows=normalize_bundle(bundle)
-    if any(c['iso3'] not in {'CAN','JPN','USA'} for r in rows for c in r['coverage']):
-        raise ValueError('Unexpected destination in initial capture')
+    if not full and any(c['iso3'] not in {'CAN','JPN','USA'} for r in rows for c in r['coverage']):
+        raise HostedValidationError('Unexpected destination in sample capture.')
+    report=preview(rows,requested=bundle.get('iso3'))
+    if not all(report['sources'].values()):
+        raise HostedValidationError('Both official sources must contain documents for this rollout.')
+    return bundle, rows, report, hashlib.sha256(content).hexdigest()
+
+
+def catalogue_preflight(conn, rows):
+    catalogue={r[0] for r in conn.execute('SELECT iso3 FROM public.countries').fetchall()}
+    required={c['iso3'] for row in rows for c in row['coverage'] if c['iso3']}
+    missing=sorted(required-catalogue)
+    if missing:
+        raise HostedValidationError('Country catalogue is missing capture keys: '+', '.join(missing))
+    incoming={(r['source'],r['source_key']) for r in rows}
+    previous=conn.execute('SELECT source,source_key FROM advisory.documents').fetchall()
+    return {'catalogue_countries':len(catalogue),'mapped_capture_countries':len(required),
+            'missing_country_keys':missing,
+            'previous_documents_not_in_capture':[
+                {'source':source,'source_key':key} for source,key in previous if (source,key) not in incoming]}
+
+
+def review_records(rows, report):
+    overlaps={(g['source'],key) for g in report['overlapping_country_documents'] for key in g['source_keys']}
+    return [{'source':r['source'],'source_key':r['source_key'],'country_name':r['country_name'],
+             'coverage':r['coverage'],'candidate_iso3':r['metadata'].get('covered_iso3_candidates',[]),
+             'overlapping_documents':(r['source'],r['source_key']) in overlaps}
+            for r in rows if any(c['scope']=='unresolved' for c in r['coverage'])
+            or (r['source'],r['source_key']) in overlaps]
+
+
+def preflight(args):
+    _, rows, report, digest=prepare_capture(args)
+    output=Path(args.output)
+    if output.exists(): raise FileExistsError('Output exists')
+    with connection(read_config()) as conn:
+        check_writer(conn)
+        catalogue=catalogue_preflight(conn,rows)
+    plan={'format':'safetrip-hosted-import-plan-v1','created_at':datetime.now(timezone.utc).isoformat(),
+          'mode':'all' if getattr(args,'all_destinations',False) else 'sample',
+          'input_sha256':digest,'parser_version':report['parser_version'],
+          'sources':report['sources'],'review_required':report['review_required'],
+          'capture_bytes':Path(args.input).stat().st_size,
+          'normalized_payload_bytes':sum(len(r['raw_payload']) for r in rows),
+          'paragraphs':sum(len(section['paragraphs']) for r in rows for section in r['sections']),
+          'review_records':review_records(rows,report),'database_preflight':catalogue,
+          'public_scores_changed':False,'database_written':False}
+    output.parent.mkdir(parents=True,exist_ok=True)
+    with output.open('x') as f: json.dump(plan,f,indent=2);f.write('\n')
+    print('Hosted preflight passed. No writes performed.')
+    print('Documents by source:',json.dumps(plan['sources'],sort_keys=True))
+    print('Review-required records retained separately:',plan['review_required'])
+    print('Paragraphs to retain:',plan['paragraphs'])
+    print('Previously stored documents absent from this capture:',len(catalogue['previous_documents_not_in_capture']))
+    print('Plan saved to:',output)
+
+
+def verify_plan(args, report, digest):
+    if not getattr(args,'all_destinations',False): return
+    if not getattr(args,'plan',None):
+        raise HostedValidationError('A full import requires --plan from a successful preflight.')
+    plan=json.loads(Path(args.plan).read_text())
+    expected={'format':'safetrip-hosted-import-plan-v1','mode':'all','input_sha256':digest,
+              'parser_version':report['parser_version'],'sources':report['sources'],
+              'review_required':report['review_required'],'database_written':False}
+    if any(plan.get(k)!=v for k,v in expected.items()) or plan.get('database_preflight',{}).get('missing_country_keys')!=[]:
+        raise HostedValidationError('Plan does not match this validated capture/parser. Run preflight again.')
+
+
+def ingest(args):
+    bundle, rows, report, digest=prepare_capture(args)
+    verify_plan(args,report,digest)
     from sqlalchemy.engine import URL
     from safetrip.persistence.postgres import PostgresPublisher
     from safetrip.persistence.advisories import ingest_capture
     config=read_config()
-    with connection(config) as conn: check_writer(conn)
+    with connection(config) as conn:
+        check_writer(conn)
+        catalogue_preflight(conn,rows)
     output=Path(args.output)
     output.parent.mkdir(parents=True,exist_ok=True)
     # Reserve result before any database write; an empty file is not a success marker.
@@ -159,18 +242,23 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     sub=p.add_subparsers(dest='command',required=True)
     sub.add_parser('setup');sub.add_parser('check')
-    i=sub.add_parser('ingest');i.add_argument('--input',required=True);i.add_argument('--output',required=True)
+    for command in ['preflight','ingest']:
+        i=sub.add_parser(command);i.add_argument('--input',required=True);i.add_argument('--output',required=True)
+        i.add_argument('--all-destinations',action='store_true',help='Explicitly select a complete worldwide capture.')
+        if command=='ingest': i.add_argument('--plan',help='Required preflight JSON for a full import.')
     args=p.parse_args()
     try:
         if args.command=='setup': setup()
         elif args.command=='check':
             with connection(read_config()) as conn: check_writer(conn)
             print('Hosted writer identity, TLS and restricted permissions verified. No writes performed.')
+        elif args.command=='preflight': preflight(args)
         else: ingest(args)
         return 0
     except Exception as error:
         # Raw database exceptions may include SQL, credentials or connection details.
-        print(f'Hosted advisory command failed ({type(error).__name__}); details suppressed. No successful import declared.')
+        detail=str(error) if isinstance(error,HostedValidationError) else type(error).__name__
+        print(f'Hosted advisory command failed ({detail}); connection details suppressed. No successful import declared.')
         return 1
 
 
