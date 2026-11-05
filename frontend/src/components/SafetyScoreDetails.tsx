@@ -6,9 +6,14 @@ import { ChevronDown, ChevronUp, BarChart2, Hash } from 'lucide-react'
 interface SafetyScoreDetailsProps {
     bertScore: number | null
     clusteringScore: number | null
+    scoringVersion?: string | null
+    officialUSLevel?: number | null
+    officialUSComponent?: number | null
+    clusteringComponent?: number | null
 }
 
-export default function SafetyScoreDetails({ bertScore, clusteringScore }: SafetyScoreDetailsProps) {
+export default function SafetyScoreDetails({ bertScore, clusteringScore, scoringVersion,
+    officialUSLevel,officialUSComponent,clusteringComponent }: SafetyScoreDetailsProps) {
     const [isOpen, setIsOpen] = useState(false)
 
     const getBertDetails = (score: number) => {
@@ -25,6 +30,28 @@ export default function SafetyScoreDetails({ bertScore, clusteringScore }: Safet
         return { color: 'text-red-600', bg: 'bg-red-50' }
     }
 
+    if (scoringVersion && scoringVersion !== 'legacy-v1') {
+        if (scoringVersion !== 'us-official-cluster-v1') return <p className="text-sm text-gray-600 mt-3">Score methodology is temporarily unavailable.</p>
+        const components=[officialUSComponent,clusteringComponent].filter(v=>v !== null && v !== undefined)
+        return <div className="mt-4 border-t border-gray-100 pt-4">
+            {officialUSLevel === 4 && <p className="text-sm font-bold text-red-700 mb-3">US advisory: Do not travel. Read the official advice below.</p>}
+            <details>
+                <summary className="cursor-pointer text-sm font-medium text-gray-600">Score Breakdown</summary>
+                <div className="mt-3 space-y-3 text-sm text-gray-700">
+                    {officialUSComponent != null && <div className="p-3 rounded-lg border border-gray-100">
+                        <p className="font-semibold">Official US advisory — Level {officialUSLevel}</p>
+                        <p>{officialUSComponent.toFixed(2)} / 10</p>
+                    </div>}
+                    {clusteringComponent != null && <div className="p-3 rounded-lg border border-gray-100">
+                        <p className="font-semibold">Clustering component</p>
+                        <p>{clusteringComponent.toFixed(2)} / 10 · tier {clusteringScore}</p>
+                    </div>}
+                    <p>{components.length === 1 ? 'Based on one available component.' : 'Equal-weight average of the two components.'}</p>
+                    <p>Custom index, not a probability of harm. Regional US warnings remain separate from the countrywide score.</p>
+                </div>
+            </details>
+        </div>
+    }
     if (bertScore === null && clusteringScore === null) return null
 
     return (

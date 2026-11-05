@@ -10,11 +10,11 @@ import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
 from .advisories import FEED_URL
-from .countries import resolve_iso3
+from .countries import resolve_iso3, REGIONAL_NAMES, normalized_name
 from .uk_advisories import destination, normalize_uk, paragraphs
 
 FORMAT = 'safetrip-advisory-capture-v1'
-PARSER_VERSION = 'us-uk-ingestion-v2'
+PARSER_VERSION = 'us-uk-ingestion-v3'
 US_COMPOUND_CANDIDATES = {
     'french west indies': ['GLP', 'MTQ', 'MAF', 'BLM'],
     'mainland china, hong kong & macau - see summaries': ['CHN', 'HKG', 'MAC'],
@@ -143,7 +143,7 @@ def us_documents(body, fetched_at, selected):
         blocks = paragraphs(item.findtext('description', ''))
         if not source_key or not blocks:
             raise AdvisoryValidationError('US advisory lacks identity or usable body text.')
-        regional = name.lower() in {'west bank', 'the west bank', 'gaza', 'saba', 'bonaire'}
+        regional = normalized_name(name) in REGIONAL_NAMES
         target = {'iso3': iso3, 'scope': 'parts' if regional else 'whole_country', 'region_label': name if regional else None}
         if iso3 is None or candidates:
             target = {'iso3': None, 'scope': 'unresolved', 'region_label': name}

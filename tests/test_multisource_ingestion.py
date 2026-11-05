@@ -81,6 +81,15 @@ class MultisourceIngestionTests(unittest.TestCase):
             {'iso3':'PSE','scope':'parts','region_label':'The West Bank'}])
         self.assertEqual([r['us_level'] for r in rows],[4,3])
 
+    def test_saba_and_sint_eustatius_does_not_cover_all_of_bes(self):
+        from xml.etree import ElementTree as ET
+        c=next(c for c in self.bundle()['captures'] if c['source']=='us_state')
+        xml=ET.fromstring(decode_capture(c))
+        item=xml.find('./channel/item');item.find('title').text='Saba and Sint Eustatius - Level 1: Exercise Normal Precautions'
+        rows=us_documents(ET.tostring(xml),c['fetched_at'],{'BES'})
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['coverage'],[{'iso3':'BES','scope':'parts','region_label':'Saba and Sint Eustatius'}])
+
     def test_compound_uk_destination_is_stored_as_unresolved_not_one_country(self):
         b=self.bundle();b['iso3']=None
         index_capture=b['captures'][0];index=json.loads(decode_capture(index_capture))

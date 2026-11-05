@@ -51,6 +51,10 @@ def main():
         area_script=ROOT/'db/hosted/002_uk_warning_areas.sql'
         assert area_script.read_text()==render_warning_areas()
         sql(area_script.read_text())
+        from build_official_scores import render as render_official_scores
+        score_script=ROOT/'db/hosted/003_official_scores.sql'
+        assert score_script.read_text()==render_official_scores()
+        sql(score_script.read_text())
         assert sql('SELECT count(*) FROM countries').stdout.strip()=='5'
         assert sql("SELECT safe_trip_score FROM scores WHERE iso3='CAN'").stdout.strip()=='10'
         assert sql("SELECT rolcanlogin FROM pg_roles WHERE rolname='safetrip_writer'").stdout.strip()=='f'
@@ -61,6 +65,8 @@ def main():
         with psycopg.connect(host='127.0.0.1',port=port,dbname='postgres',user='postgres',password='rehearsal_local_only') as owner:
             enable_writer(owner,'writer_local_only')
             enable_reader(owner,'reader_local_only')
+            from publish_official_scores import enable_publisher
+            enable_publisher(owner,'publisher_local_only')
         publisher=PostgresPublisher(f'postgresql+psycopg://safetrip_writer:writer_local_only@127.0.0.1:{port}/postgres')
         try:
             bundle=json.loads((ROOT/'tests/fixtures/us_uk_capture.json').read_text())
@@ -93,8 +99,22 @@ def main():
                 else:
                     raise AssertionError('Reader boundary failed')
         assert sql("SELECT safe_trip_score FROM scores WHERE iso3='CAN'").stdout.strip()=='10'
+        from safetrip.persistence.official_scores import OfficialScorePublisher
+        from safetrip.scoring.snapshot import COUNTRIES_SQL,PUBLISHED_SQL,ADVISORIES_SQL,snapshot_hash,calculate
+        from sqlalchemy import text
+        scorer=OfficialScorePublisher(f'postgresql+psycopg://safetrip_score_publisher:publisher_local_only@127.0.0.1:{port}/postgres')
+        try:
+            with scorer.engine.connect() as c:
+                snapshot={k:[dict(r) for r in c.execute(text(q)).mappings()] for k,q in [
+                    ('countries',COUNTRIES_SQL),('published_scores',PUBLISHED_SQL),('official_us_advisories',ADVISORIES_SQL)]}
+            plan=json.loads(json.dumps({'database_written':False,'input_sha256':snapshot_hash(snapshot),
+                                       'previews':{'exclude':calculate(snapshot)}},default=str))
+            result=scorer.publish(plan)
+            assert result['published_rows']==5
+            assert sql("SELECT scoring_version FROM scores WHERE iso3='CAN'").stdout.strip()=='us-official-cluster-v1'
+        finally:scorer.close()
         assert sql('SET ROLE safetrip_writer; UPDATE scores SET safe_trip_score=0 WHERE false;',check=False).returncode!=0
-        print('PASS: additive install, default API grant removal, NOLOGIN roles, real ingestion/replay, reader isolation, score preservation, rerun refusal.')
+        print('PASS: hosted migrations, API grant removal, real ingestion/replay, reader isolation, scoped official publication, rerun refusal.')
     finally:
         docker('rm','-f','-v',target,check=False)
 

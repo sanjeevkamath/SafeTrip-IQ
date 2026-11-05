@@ -20,6 +20,7 @@ function load(path, mocks = {}, env = {}) {
     return exports
 }
 const Component = load('../src/components/OfficialAdvisories.tsx').default
+const ScoreBreakdown = load('../src/components/SafetyScoreDetails.tsx').default
 const {advisoryPoolOptions} = load('../src/lib/server/advisory-reader.ts')
 const document = {iso3:'PSE',document_id:'one',version_id:'v1',source:'us_state',
     source_url:'https://travel.state.gov/example',source_public_updated_at:'2026-11-01T12:00:00Z',
@@ -105,5 +106,34 @@ test('optional excerpt failure retains official warnings and filters excerpts by
         const excerpts=result.sources.uk_fcdo.documents[0].warning_excerpts
         if(fail) assert.equal(excerpts,null)
         else { assert.equal(excerpts.length,1);assert.equal(excerpts[0].body,'Current official wording') }
+    }
+})
+
+test('official score breakdown never labels historical BERT as a production component', () => {
+    const renderScore=props=>renderToStaticMarkup(createElement(ScoreBreakdown,{bertScore:3,clusteringScore:2,...props}))
+    const html=renderScore({scoringVersion:'us-official-cluster-v1',officialUSLevel:2,
+        officialUSComponent:7.5,clusteringComponent:6})
+    assert.match(html,/Official US advisory/);assert.match(html,/7\.50/);assert.match(html,/6\.00/)
+    assert.match(html,/Equal-weight average/);assert.ok(!html.includes('BERT Score'))
+    const single=renderScore({scoringVersion:'us-official-cluster-v1',clusteringComponent:6})
+    assert.match(single,/one available component/);assert.ok(!single.includes('Official US advisory'))
+    const severe=renderScore({scoringVersion:'us-official-cluster-v1',officialUSLevel:4,officialUSComponent:2.5})
+    assert.ok(severe.indexOf('Do not travel')<severe.indexOf('<details'))
+    assert.match(renderScore({scoringVersion:'unavailable'}),/methodology is temporarily unavailable/)
+    assert.match(renderScore({}),/BERT Score/)
+})
+
+test('legacy Supabase country read overlays current score methodology and fails honestly', async () => {
+    const base={country:{iso3:'CAN',name:'Canada'},score:{iso3:'CAN',safe_trip_score:10,bert_score:0,clustering_score:0},culture:null}
+    for (const fail of [false,true]) {
+        const api=load('../src/lib/server/queries.ts',{
+            './supabase-queries':{getCountryDetails:async()=>base},
+            './postgres-queries':{getPublishedScore:async()=>{
+                if(fail)throw new Error('Synthetic methodology failure')
+                return {...base.score,scoring_version:'us-official-cluster-v1',official_us_level:1}
+            }},
+        },{SAFETRIP_DB_BACKEND:'supabase',SAFETRIP_ADVISORY_DATABASE_URL:'synthetic-reader'})
+        const result=await api.getCountryDetails('CAN')
+        assert.equal(result.score.scoring_version,fail?'unavailable':'us-official-cluster-v1')
     }
 })
