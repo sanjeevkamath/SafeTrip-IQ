@@ -13,17 +13,21 @@ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'safetrip_writer') THEN
         CREATE ROLE safetrip_writer LOGIN PASSWORD 'writer_local_only';
     END IF;
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'safetrip_score_publisher') THEN
+        CREATE ROLE safetrip_score_publisher NOLOGIN;
+    END IF;
 END $$;
 ALTER ROLE safetrip_migrator NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 ALTER ROLE safetrip_reader NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 ALTER ROLE safetrip_writer NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+ALTER ROLE safetrip_score_publisher NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
 REVOKE ALL ON DATABASE safetrip FROM PUBLIC;
-GRANT CONNECT ON DATABASE safetrip TO safetrip_migrator, safetrip_reader, safetrip_writer;
+GRANT CONNECT ON DATABASE safetrip TO safetrip_migrator, safetrip_reader, safetrip_writer, safetrip_score_publisher;
 -- The migration role may create the private advisory schema; application roles may not.
 GRANT CREATE ON DATABASE safetrip TO safetrip_migrator;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 ALTER SCHEMA public OWNER TO safetrip_migrator;
-GRANT USAGE ON SCHEMA public TO safetrip_reader, safetrip_writer;
+GRANT USAGE ON SCHEMA public TO safetrip_reader, safetrip_writer, safetrip_score_publisher;
 -- New tables/functions receive no automatic application privileges.
 ALTER DEFAULT PRIVILEGES FOR ROLE safetrip_migrator IN SCHEMA public
     REVOKE ALL ON TABLES FROM PUBLIC;

@@ -10,6 +10,8 @@ interface PageProps {
     }>
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function CountryPage({ params }: PageProps) {
     const { iso3 } = await params
 
@@ -124,6 +126,10 @@ export default async function CountryPage({ params }: PageProps) {
                                     <SafetyScoreDetails
                                         bertScore={score.bert_score}
                                         clusteringScore={score.clustering_score}
+                                        scoringVersion={score.scoring_version}
+                                        officialUSLevel={score.official_us_level}
+                                        officialUSComponent={score.official_us_component}
+                                        clusteringComponent={score.clustering_component}
                                     />
                                 </div>
                             )}

@@ -35,6 +35,10 @@ export type Score = {
     safe_trip_score: number | null
     bert_score: number | null
     clustering_score: number | null
+    official_us_level?: number | null
+    official_us_component?: number | null
+    clustering_component?: number | null
+    scoring_version?: string | null
 }
 export type Culture = {
     iso3: string

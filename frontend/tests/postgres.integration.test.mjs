@@ -75,6 +75,14 @@ test('dedicated advisory reader works alongside the legacy backend', async () =>
     assert.ok(result.sources.uk_fcdo)
 })
 
+test('scoring readiness uses only the reader and reports unpublished official fields', async () => {
+    const status=await queries().getScoringStatus()
+    assert.equal(status.supported_formula,'us-official-cluster-v1')
+    assert.equal(status.regional_policy,'exclude')
+    assert.equal(status.schema_ready,true)
+    assert.equal(status.published_rows,0)
+})
+
 test('country details preserve missing country and missing optional data', async () => {
     const db = queries()
     assert.equal(await db.getCountryDetails('ZZZ'), null)

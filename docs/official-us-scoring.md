@@ -11,7 +11,7 @@ Scope decision: defer new external indicators and new NLP scoring. Replace the B
 
 The clustering inputs come from existing published `scores.clustering_score`, not a fresh K-means fit or arbitrary raw cluster IDs. Comparison of the pre-migration snapshot found all 168 published clustering values equal to the corresponding stored clustering values. This preserves the existing asserted risk-tier interpretation; it does not independently validate the original manual tier ordering or data vintage.
 
-For multiple mapped whole-country US documents, equal levels can contribute one component while all source documents remain in the report. Disagreeing levels are flagged for review and do not silently choose a winner. Regional US documents remain individually traceable. The preview supports comparing exclusion from the countrywide component versus explicitly choosing the highest regional level; the final regional policy must be settled before publication. Unresolved compound documents do not become guessed country scores.
+For multiple mapped whole-country US documents, equal levels contribute one component while all source documents remain in the report. Disagreeing levels block publication rather than silently choosing a winner. **Confirmed policy: exclude regional-only US levels from the countrywide component; use clustering alone where available and keep regional levels on the advisory cards.** If no clustering tier is available, the overall value is null. Unresolved compound documents do not become guessed country scores. The highest-regional-level preview remains a comparison experiment; the production publisher accepts only exclusion.
 
 ## Read-only comparison
 
@@ -21,9 +21,45 @@ uv run --frozen python db/scripts/preview_official_scores.py --output .local/v2/
 
 This uses only the restricted hosted reader and a repeatable-read, read-only transaction. It records country catalogue, old published components, currently displayed official US versions, an input checksum, source/retrieval dates, both regional-policy previews, coverage, conflicts and per-country changes. It has no write flag and performs no permission, schema, model or score changes. Existing output paths are not overwritten. After the policy decision, use `--regional-policy exclude` or `--regional-policy highest` for a single-policy report.
 
-## Publication is a later explicit step
+## Scoped publication and rollout order
 
-Before changing production, inspect the full preview, settle regional/conflict rules and confirm use of the frozen clustering tiers. Then add explicitly named official-advisory fields, formula/input provenance and a narrowly scoped publication path with atomic history and rollback. The existing ingestion writer intentionally cannot update public scores; do not grant it broad score access to bypass this separation. Update the public breakdown to say Official US advisory, preserve experimental BERT history separately, and verify before/after values on a local rehearsal. Publish only after the data and UI contracts are ready together.
+Migration `0009` adds official level, normalized components, formula, publication run ID and publication timestamp to scores. Existing numeric values and model input columns are unchanged by migration. A private RLS-protected official history table stores each published country's full source references; the run ledger stores the exact input snapshot and checksum, including previous score metadata. Do not store official levels in `bert_score`.
+
+The dedicated `safetrip_score_publisher` starts NOLOGIN. It receives only column-level INSERT/UPDATE grants for publication outputs, SELECT on the reviewed input projections, append-only history access, and run-ledger access restricted by RLS to `publish-official-scores`. It cannot update BERT/clustering columns, read the raw advisory schema, delete scores, or change earlier ingestion runs. The ingestion writer's privileges are unchanged. Keep publisher credentials local/backend-only, never in Vercel or NEXT_PUBLIC settings.
+
+The publisher uses a serializable transaction and the same advisory locks as ingestion. It re-reads and fingerprints current inputs, independently recalculates all outputs, checks the saved preview exactly, rejects conflicts, and commits score rows, per-country history and successful run status together. Failures preserve a failed attempt record while score/history writes roll back. A preview cannot be reused after a successful publication because publication metadata is part of the input snapshot. Serialization failures require a fresh read/review as appropriate, not blind retries.
+
+1. Apply the additive hosted script as `postgres` in Supabase SQL Editor:
+
+```sh
+pbcopy < db/hosted/003_official_scores.sql
+```
+
+This requires the earlier hosted 002 migration. Do not run the local Alembic chain on Supabase. The standalone script creates the NOLOGIN role, fields and policies in one transaction and intentionally fails on an unexpected existing install.
+
+2. Merge/deploy the scoring UI before publishing. It reads the new metadata via the already configured restricted PostgreSQL reader, alongside legacy Supabase country/culture reads. Optional JSON projections support the old schema during staged rollout. New-format scores show Official US advisory and normalized Clustering component; historical BERT predictions are retained but excluded from the breakdown. A failed/unknown methodology read is labelled unavailable rather than BERT. Level 4 is prominently visible outside the collapsed breakdown.
+
+Verify `https://safetripiq.vercel.app/api/scoring-status` reports `supported_formula: us-official-cluster-v1`, `regional_policy: exclude`, `schema_ready: true`; before first publication, `published_rows` should be zero. No additional Vercel environment variables are needed.
+
+3. Set up/check the publisher, then generate a fresh single-policy preview:
+
+```sh
+uv run --frozen python db/scripts/publish_official_scores.py setup
+uv run --frozen python db/scripts/publish_official_scores.py check
+uv run --frozen python db/scripts/preview_official_scores.py --regional-policy exclude --output .local/v2/official-scoring/approved.json
+```
+
+4. After reviewing the preview, explicitly publish:
+
+```sh
+uv run --frozen python db/scripts/publish_official_scores.py publish --preview .local/v2/official-scoring/approved.json --output .local/v2/official-scoring/published.json --site https://safetripiq.vercel.app --write
+```
+
+The helper checks the public production readiness endpoint before attempting writes. Use new output paths; an empty artifact is not a commit marker. If an error occurs, inspect the printed attempt run ID in the run ledger before retrying; an ambiguous client response must not be mistaken for a rollback.
+
+5. Verify readiness reports 250 published rows (including null overall scores), 216 non-null values under the verified snapshot, source/date provenance, and correct breakdown labels. CAN/JPN should stay 10.0 and USA 6.0; PSE should have no overall score while regional warnings remain visible. Compare against the saved preview and confirm BERT/clustering inputs remain unchanged. A later data refresh may change those counts; the approved input checksum, not hardcoded country counts, controls publication.
+
+The successful run's `input_payload` preserves prior numeric values and methodology fields for a reviewed restore if needed. No automatic downgrade/restore command is provided: do not delete history or re-run legacy publication to change official scores. Disable the publisher login and prepare a targeted restore transaction if post-publication review finds an issue. Transaction-failure rollback is tested separately from a deliberate post-publication restore.
 
 No new sources, clustering retraining, BERT inference or AWS resource changes are required for this scoring preview.
 
@@ -31,6 +67,8 @@ No new sources, clustering retraining, BERT inference or AWS resource changes ar
 
 Across 250 hosted catalogue entries, excluding regional-only US advisories yields 165 countries with both components, 48 with US advice alone, three with clustering alone, and 34 with neither. Thirty country scores would change. Canada and Japan remain 10.0; USA remains 6.0. There are no conflicting whole-country levels; Tonga's two whole-country documents agree and contribute one US component.
 
-The highest-regional-level variant changes only Palestine in this snapshot: it has no published clustering tier, so its combined value changes from null under exclusion to 2.5 using its highest regional level of 4. This does not mean the source publishes a Palestine-wide US level; it is an explicit proposed aggregation policy. The final policy is awaiting the user's decision. All original regional records remain in the preview.
+The highest-regional-level variant changes only Palestine in this snapshot: it has no published clustering tier, so its combined value changes from null under exclusion to 2.5 using its highest regional level of 4. The user chose exclusion: Palestine remains null overall and retains the separate regional advisory cards. All original regional records remain in the preview.
 
-Evidence is stored only under ignored `.local/v2/official-scoring/comparison.json`, including the source input snapshot and checksum. The command made no database writes. The preview is implemented and tested; production schema, score publication and public breakdown labels have not been changed.
+Evidence is stored only under ignored `.local/v2/official-scoring/comparison.json` and the fresh single-policy preview, including the source input snapshots/checksums. Preview commands made no database writes. Publication, migration and UI code are implemented locally; no production scoring schema or score values have been changed by this implementation task.
+
+Local verification passed 104 dependency-free unit tests, 49 PostgreSQL integration tests, 12 frontend tests and seven real PostgreSQL website-query tests. The hosted-style disposable rehearsal applied the scoring bridge and published with the restricted role. Tests cover actual source changes after preview, edited results, stale reuse, mid-write rollback, history/provenance, denied model-input writes, single-component labels, Level 4 visibility and methodology failure handling. Lint has three pre-existing image warnings; typecheck passed. A read-only hosted prerequisite check confirmed the affected-area migration is installed and the scoring migration is not yet installed.

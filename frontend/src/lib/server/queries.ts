@@ -25,7 +25,17 @@ export function listCountryScores(query?: string) {
 }
 
 export function getCountryDetails(iso3: string) {
-    return read(() => adapter().getCountryDetails(iso3))
+    return read(async () => {
+        const details=await adapter().getCountryDetails(iso3)
+        if (!details || process.env.SAFETRIP_DB_BACKEND === 'postgres' || !process.env.SAFETRIP_ADVISORY_DATABASE_URL) return details
+        try {
+            return {...details,score:await postgres.getPublishedScore(iso3)}
+        } catch {
+            // A methodology-read failure must not label an official score as BERT.
+            console.error('Score methodology is temporarily unavailable')
+            return {...details,score:details.score ? {...details.score,scoring_version:'unavailable'} : null}
+        }
+    })
 }
 
 export function getRefreshStatus() {
@@ -39,5 +49,14 @@ export function getCountryAdvisories(iso3: string) {
             throw new Error('Advisory reads require the migrated PostgreSQL backend.')
         }
         return postgres.getCountryAdvisories(iso3)
+    })
+}
+
+export function getScoringStatus() {
+    return read(() => {
+        if (process.env.SAFETRIP_DB_BACKEND !== 'postgres' && !process.env.SAFETRIP_ADVISORY_DATABASE_URL) {
+            throw new Error('A restricted PostgreSQL reader is required.')
+        }
+        return postgres.getScoringStatus()
     })
 }
