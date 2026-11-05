@@ -64,13 +64,16 @@ def ingest_capture(publisher, bundle):
                         conn.execute(text('''INSERT INTO advisory.coverage(coverage_id,version_id,iso3,scope,region_label)
                             VALUES (:id,:version,:iso3,:scope,:region_label)'''),
                             {'id': uuid4(), 'version': version_id, **target})
-                    for section in row['sections']:
-                        for index, paragraph in enumerate(section['paragraphs']):
-                            conn.execute(text('''INSERT INTO advisory.paragraphs
-                                (version_id,section_slug,paragraph_index,section_title,heading,body)
-                                VALUES (:version,:slug,:idx,:title,:heading,:body)'''),
-                                {'version': version_id, 'slug': section['slug'], 'idx': index,
-                                 'title': section['title'], 'heading': paragraph['heading'], 'body': paragraph['text']})
+                    paragraphs=[{'version': version_id, 'slug': section['slug'], 'idx': index,
+                                 'title': section['title'], 'heading': paragraph['heading'], 'body': paragraph['text']}
+                                for section in row['sections']
+                                for index,paragraph in enumerate(section['paragraphs'])]
+                    if paragraphs:
+                        # Driver executemany pipelines the rows. Keep original
+                        # section/index identities and the surrounding transaction.
+                        conn.execute(text('''INSERT INTO advisory.paragraphs
+                            (version_id,section_slug,paragraph_index,section_title,heading,body)
+                            VALUES (:version,:slug,:idx,:title,:heading,:body)'''),paragraphs)
                 conn.execute(text('''INSERT INTO advisory.observations(run_id,document_id,version_id,fetched_at)
                     VALUES (:run,:doc,:version,:fetched)'''),
                     {'run': publisher.history.active, 'doc': doc_id, 'version': version_id, 'fetched': row['fetched_at']})

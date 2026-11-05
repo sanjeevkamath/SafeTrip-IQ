@@ -67,7 +67,7 @@ uv run --frozen safetrip ingest-advisories --input .local/v2/hosted-smoke/captur
 uv run --frozen python db/scripts/hosted_advisories.py ingest --input .local/v2/hosted-smoke/capture.json --output .local/v2/hosted-smoke/committed.json
 ```
 
-The hosted helper deliberately accepts only the CAN/JPN/USA selection for this initial rollout. It validates the capture and restricted connection before using the existing atomic ingestion code. It reserves a new output path before writes. A completed run ID and successful command are authoritative; an empty result file is not proof of success. Use a new result filename for a replay. Full-world import and a hosted reader login follow verification of this batch. No models or public score publication are involved.
+By default the hosted helper accepts only CAN/JPN/USA. Full-destination mode requires explicit flags and a matching preflight plan as described below. It validates the capture and restricted connection before using the existing atomic ingestion code. It reserves a new output path before writes. A completed run ID and successful command are authoritative; an empty result file is not proof of success. Use a new result filename for a replay. No models or public score publication are involved.
 
 ## Local website read path
 
@@ -114,3 +114,55 @@ The dev command checks the reader, then launches the local Next.js app with thre
 Visit the local address Next prints, then `/country/CAN`, `/country/JPN` and `/country/USA`. Expect separate official-source cards, US level descriptions, UK warning labels, original region labels where applicable, source/retrieval dates in UTC, and official links. No imported source, an unavailable database, missing warning status, and an empty UK flag array have distinct messages. All overlapping documents remain visible individually. Displayed warnings do not alter scores or map colours. With the feature flag unset, the new country-page section is hidden.
 
 Hosted advisory connections use the session pooler and an explicit certificate-verifying TLS object. The URL must have no query parameters: [node-postgres warns that URL SSL parameters replace explicit SSL options](https://node-postgres.com/features/ssl). Local tests use the restricted local reader without TLS. The web connection is independently pooled (maximum two connections per process); no raw-schema access is granted to the web role. Deploying the UI and configuring Vercel are separate later steps after preview review.
+
+## Full-destination rollout
+
+Start from merged main on a separate rollout branch. Capture/preview still require no database credentials. Use fresh output paths; partial captures and existing outputs are not overwritten.
+
+```sh
+uv run --frozen safetrip capture-advisories --all --output .local/v2/hosted-world-20261105/capture.json
+uv run --frozen safetrip ingest-advisories --input .local/v2/hosted-world-20261105/capture.json --output .local/v2/hosted-world-20261105/preview.json
+uv run --frozen python db/scripts/hosted_advisories.py preflight --all-destinations --input .local/v2/hosted-world-20261105/capture.json --output .local/v2/hosted-world-20261105/plan.json
+```
+
+Preflight is read-only. It checks the effective writer permissions, ensures every resolved country key exists in the hosted catalogue, and records exact input SHA256, parser version, both source counts, unresolved/overlapping review records, and previously stored documents absent from this capture. Inspect the saved plan before importing. Absence does not automatically withdraw a previously stored document; investigate unexpected gaps. Do not remove unknown destinations or force compound warnings onto one country to make validation pass.
+
+When the plan matches the reviewed capture:
+
+```sh
+uv run --frozen python db/scripts/hosted_advisories.py ingest --all-destinations --plan .local/v2/hosted-world-20261105/plan.json --input .local/v2/hosted-world-20261105/capture.json --output .local/v2/hosted-world-20261105/committed.json
+```
+
+The full mode rejects a subset capture and requires the exact preflight checksum/parser/counts. It rechecks the catalogue immediately before invoking atomic ingestion. Both official sources must be present. Review-required documents remain retained, unresolved coverage stays out of the country display view, and overlapping mapped documents remain separate. No new table or public score migration is needed.
+
+Verify the successful run and observations, then replay the same command with a new `replayed.json` output path: expect zero new documents/versions and all versions reused. The source counts depend on the captured feeds; the earlier 218/226 counts are not permanent constants. Use `hosted_reader.py check` and the opt-in local preview to verify the display, including PSE regional labels, ATA, a restriction-bearing UK page and one-source/missing-source cases. Vercel configuration, feature enablement and weekly AWS scheduling are separate steps.
+
+Paragraph writes are batched per document through the driver, preserving original section/index identifiers and the all-or-nothing transaction. This avoids sending tens of thousands of separate paragraph INSERT round trips to the hosted database. Existing provenance, replay, and rollback integration checks apply to the batched path.
+
+## Enable the existing merged display on Vercel
+
+After verifying the full hosted import, open the existing Vercel project → Settings → Environment Variables. Add these three server-only variables for the Production environment. Leave the existing Supabase variables and database backend unchanged. No NEXT_PUBLIC reader password is needed.
+
+Copy each value locally without printing it:
+
+```sh
+uv run --frozen python db/scripts/hosted_reader.py copy-env --name SAFETRIP_ADVISORY_DATABASE_URL
+uv run --frozen python db/scripts/hosted_reader.py copy-env --name SAFETRIP_ADVISORY_DATABASE_CA
+uv run --frozen python db/scripts/hosted_reader.py copy-env --name SAFETRIP_ADVISORIES_ENABLED
+```
+
+Run one command, paste its clipboard value into the matching field, then run the next. The database URL contains the restricted reader password: do not paste it into chat, screenshots, a GitHub secret discussion, or a public environment variable. The CA value is the full multiline PEM certificate. The feature flag value is `1`. The helper writes nothing to Git or frontend environment files.
+
+Once all three values are saved, redeploy the current merged main deployment so the new environment settings take effect. Verify `/country/CAN`, `/country/JPN`, `/country/USA`, `/country/PSE`, `/country/ATA` and a restriction-bearing destination found in the capture. Check map/search and existing scores too. No score formula or map colour change is part of enabling these cards.
+
+To disable the display, set `SAFETRIP_ADVISORIES_ENABLED=0` and redeploy; retain the stored advisory history. Full data storage and UI enablement are separate rollout actions. AWS schedules remain off.
+
+### Verified hosted full import — November 5, 2026
+
+The fresh capture contained 228 HTTP responses: the UK index, US RSS feed and 226 UK documents. It normalized to 218 US documents plus 226 UK documents, with 26,077 paragraphs and 228 mapped country keys. Hosted preflight found no missing catalogue keys and no previously stored documents absent from the capture.
+
+The production import committed 439 new documents/versions and reused the original five. A full replay created zero new documents/versions, reused all 444 versions, and recorded 444 observations. Read-only verification checked paragraph counts for every document, the retained raw capture checksum, successful run status with zero published score rows, and exact equality of all 212 public score rows with the pre-migration snapshot. The display view returned 217 US and 224 UK records. Three unresolved compound documents remain private; the two Tonga documents remain separate mapped records. ATA has both sources, and PSE retains Gaza/West Bank regional records. Nonempty UK warnings were verified for AFG, AGO and ARM.
+
+Generated capture, plan, committed result and verification evidence remain ignored under `.local/v2/hosted-world-20261105/`. This verifies hosted data storage and reader queries; it does not claim Vercel's live feature flag has been enabled.
+
+The user confirmed the intended production site is `https://safetripiq.vercel.app/`, corresponding to the `safetripiq` Vercel project. Use that project for production environment settings; the repository also has another Vercel integration.

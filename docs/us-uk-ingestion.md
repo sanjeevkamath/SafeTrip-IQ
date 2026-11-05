@@ -7,7 +7,7 @@ capture-advisories -> complete raw-response bundle -> ingest-advisories preview
                                                  -> --write -> private document/version history
 ```
 
-Public scores, the legacy advisory tables, and public refresh status are not updated by this path. AWS publishing/scheduling and hosted Supabase migration remain deferred.
+Public scores, the legacy advisory tables, and public refresh status are not updated by this path. The hosted Supabase foundation and a five-document sample have been verified; see `docs/hosted-advisory-rollout.md` for the separate hosted workflow. AWS publishing/scheduling remain deferred.
 
 ## Local setup
 
