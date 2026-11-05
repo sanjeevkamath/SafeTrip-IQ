@@ -1,0 +1,151 @@
+name: Refresh official advisories
+
+# Start manually. Adding a weekly schedule is a separate rollout decision.
+on:
+  workflow_dispatch:
+    inputs:
+      publish_scores:
+        description: Publish the new scoring preview after refreshing source records
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+# Never cancel a run during a database commit or while its publication awaits review.
+concurrency:
+  group: production-advisory-refresh
+  cancel-in-progress: false
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/pipeline/src
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  refresh:
+    if: github.repository == 'sanjeevkamath/SafeTrip-IQ' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment: advisory-refresh
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Require successful main-commit CI before accessing database credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f head_sha="$GITHUB_SHA" -f branch=main -f per_page=100 > "$RUNNER_TEMP/ci-runs.json"
+          python -m scripts.check_publish_ci --sha "$GITHUB_SHA" \
+            --repository "$GITHUB_REPOSITORY" < "$RUNNER_TEMP/ci-runs.json"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+          enable-cache: false
+      - name: Install locked ingestion dependencies without ML packages
+        run: uv sync --frozen --only-group advisory-refresh --no-install-project --python 3.11
+      - name: Capture official source responses without database access
+        run: .venv/bin/python -m safetrip.cli capture-advisories --all --output .local/refresh/outputs/capture.json
+      - name: Install private scoped credentials
+        env:
+          SAFETRIP_WRITER_CONFIG: ${{ secrets.SAFETRIP_WRITER_CONFIG }}
+          SAFETRIP_READER_CONFIG: ${{ secrets.SAFETRIP_READER_CONFIG }}
+          SAFETRIP_DATABASE_CA: ${{ secrets.SAFETRIP_DATABASE_CA }}
+        run: .venv/bin/python -m scripts.configure_refresh_ci --role writer --role reader
+      - name: Check writer and validate complete source coverage
+        run: |
+          set -euo pipefail
+          .venv/bin/python db/scripts/hosted_advisories.py check
+          .venv/bin/python db/scripts/hosted_advisories.py preflight --all-destinations \
+            --input .local/refresh/outputs/capture.json --output .local/refresh/outputs/import-plan.json
+          .venv/bin/python -m scripts.check_advisory_refresh preflight --input .local/refresh/outputs/import-plan.json
+      - name: Import versioned advice without changing scores
+        run: |
+          .venv/bin/python db/scripts/hosted_advisories.py ingest --all-destinations \
+            --input .local/refresh/outputs/capture.json --plan .local/refresh/outputs/import-plan.json \
+            --output .local/refresh/outputs/imported.json
+      - name: Calculate and validate a fresh scoring preview
+        run: |
+          set -euo pipefail
+          .venv/bin/python db/scripts/preview_official_scores.py --regional-policy exclude \
+            --output .local/refresh/outputs/score-preview.json
+          .venv/bin/python -m scripts.check_advisory_refresh preview --input .local/refresh/outputs/score-preview.json
+      - name: Retain refresh evidence, including failed-stage artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: advisory-refresh-${{ github.run_id }}-${{ github.run_attempt }}
+          # Only public-source evidence and scores. Never upload .local/supabase.
+          path: .local/refresh/outputs/*.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove runner credential files
+        if: always()
+        run: rm -f .local/supabase/advisory-writer.json .local/supabase/advisory-reader.json .local/supabase/prod-ca.crt
+
+  publish:
+    needs: refresh
+    if: inputs.publish_scores && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Configure required reviewers here to review the exact preview before writing scores.
+    environment: score-publication
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+          enable-cache: false
+      - name: Install locked publication dependencies without ML packages
+        run: uv sync --frozen --only-group advisory-refresh --no-install-project --python 3.11
+      - name: Download this run's exact preview
+        uses: actions/download-artifact@v4
+        with:
+          name: advisory-refresh-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .local/refresh/outputs
+      - name: Validate preview before exposing publisher credentials
+        run: .venv/bin/python -m scripts.check_advisory_refresh preview --input .local/refresh/outputs/score-preview.json
+      - name: Install private publisher and reader credentials
+        env:
+          SAFETRIP_PUBLISHER_CONFIG: ${{ secrets.SAFETRIP_PUBLISHER_CONFIG }}
+          SAFETRIP_READER_CONFIG: ${{ secrets.SAFETRIP_READER_CONFIG }}
+          SAFETRIP_DATABASE_CA: ${{ secrets.SAFETRIP_DATABASE_CA }}
+        run: .venv/bin/python -m scripts.configure_refresh_ci --role publisher --role reader
+      - name: Check publisher and commit reviewed scores
+        run: |
+          set -euo pipefail
+          .venv/bin/python db/scripts/publish_official_scores.py check
+          .venv/bin/python db/scripts/publish_official_scores.py publish \
+            --preview .local/refresh/outputs/score-preview.json --output .local/refresh/outputs/published.json \
+            --site https://safetripiq.vercel.app --write
+      - name: Independently read back outputs and verify preserved model inputs
+        run: |
+          set -euo pipefail
+          .venv/bin/python db/scripts/preview_official_scores.py --regional-policy exclude \
+            --output .local/refresh/outputs/postpublication.json
+          .venv/bin/python -m scripts.check_advisory_refresh verify \
+            --input .local/refresh/outputs/score-preview.json --after .local/refresh/outputs/postpublication.json \
+            --publication .local/refresh/outputs/published.json
+      - name: Retain publication evidence even if verification fails
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: advisory-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .local/refresh/outputs/published.json
+            .local/refresh/outputs/postpublication.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove runner credential files
+        if: always()
+        run: rm -f .local/supabase/official-score-publisher.json .local/supabase/advisory-reader.json .local/supabase/prod-ca.crt
