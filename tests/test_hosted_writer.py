@@ -86,6 +86,25 @@ class HostedWriterTests(unittest.TestCase):
         args=SimpleNamespace(input=str(ROOT/'tests/fixtures/us_uk_capture.json'),all_destinations=True)
         with self.assertRaises(hosted.HostedValidationError):hosted.prepare_capture(args)
 
+    def test_explicit_subset_requires_matching_selection_and_pinned_plan(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle=json.loads((ROOT/'tests/fixtures/us_uk_capture.json').read_text())
+            bundle['iso3']=['CAN'];bundle['captures'].pop()
+            path=Path(directory)/'capture.json';path.write_text(json.dumps(bundle))
+            args=SimpleNamespace(input=str(path),iso3=['CAN'],all_destinations=False,plan=None)
+            _,rows,report,digest=hosted.prepare_capture(args)
+            self.assertEqual(len(rows),2)
+            with self.assertRaises(hosted.HostedValidationError):hosted.verify_plan(args,report,digest)
+            plan={'format':'safetrip-hosted-import-plan-v1','mode':'subset','selected_iso3':['CAN'],
+                  'input_sha256':digest,'parser_version':report['parser_version'],'sources':report['sources'],
+                  'review_required':report['review_required'],'database_written':False,
+                  'database_preflight':{'missing_country_keys':[]}}
+            args.plan=str(Path(directory)/'plan.json');Path(args.plan).write_text(json.dumps(plan))
+            hosted.verify_plan(args,report,digest)
+            args.iso3=['JPN']
+            with self.assertRaises(hosted.HostedValidationError):hosted.prepare_capture(args)
+            with self.assertRaises(hosted.HostedValidationError):hosted.verify_plan(args,report,digest)
+
     def test_catalogue_preflight_rejects_missing_keys_and_reports_absent_documents(self):
         conn=Mock()
         rows=[{'source':'uk_fcdo','source_key':'new','coverage':[{'iso3':'CAN'}]}]

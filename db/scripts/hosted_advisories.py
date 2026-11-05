@@ -135,28 +135,33 @@ def prepare_capture(args):
     content=Path(args.input).read_bytes()
     bundle=json.loads(content)
     full=getattr(args,'all_destinations',False)
+    selected=set(getattr(args,'iso3',None) or ['CAN','JPN','USA'])
     if full:
         if bundle.get('iso3','missing') is not None:
             raise HostedValidationError('--all-destinations requires a complete --all capture, not a subset.')
-    elif set(bundle.get('iso3') or []) != {'CAN','JPN','USA'}:
-        raise HostedValidationError('Use the CAN/JPN/USA sample, or explicitly select --all-destinations.')
+    elif set(bundle.get('iso3') or []) != selected:
+        raise HostedValidationError('Capture selection must match explicit --iso3 values or the default CAN/JPN/USA sample.')
     rows=normalize_bundle(bundle)
-    if not full and any(c['iso3'] not in {'CAN','JPN','USA'} for r in rows for c in r['coverage']):
+    if not full and any(c['iso3'] not in selected for r in rows for c in r['coverage']):
         raise HostedValidationError('Unexpected destination in sample capture.')
     report=preview(rows,requested=bundle.get('iso3'))
-    if not all(report['sources'].values()):
+    if full and not all(report['sources'].values()):
         raise HostedValidationError('Both official sources must contain documents for this rollout.')
     return bundle, rows, report, hashlib.sha256(content).hexdigest()
 
 
-def catalogue_preflight(conn, rows):
+def catalogue_preflight(conn, rows, selected=None):
     catalogue={r[0] for r in conn.execute('SELECT iso3 FROM public.countries').fetchall()}
     required={c['iso3'] for row in rows for c in row['coverage'] if c['iso3']}
     missing=sorted(required-catalogue)
     if missing:
         raise HostedValidationError('Country catalogue is missing capture keys: '+', '.join(missing))
     incoming={(r['source'],r['source_key']) for r in rows}
-    previous=conn.execute('SELECT source,source_key FROM advisory.documents').fetchall()
+    if selected:
+        previous=conn.execute('''SELECT DISTINCT d.source,d.source_key FROM advisory.documents d
+            JOIN advisory.versions v USING(document_id) JOIN advisory.coverage c USING(version_id)
+            WHERE c.iso3=ANY(%s)''',(sorted(selected),)).fetchall()
+    else:previous=conn.execute('SELECT source,source_key FROM advisory.documents').fetchall()
     return {'catalogue_countries':len(catalogue),'mapped_capture_countries':len(required),
             'missing_country_keys':missing,
             'previous_documents_not_in_capture':[
@@ -178,9 +183,10 @@ def preflight(args):
     if output.exists(): raise FileExistsError('Output exists')
     with connection(read_config()) as conn:
         check_writer(conn)
-        catalogue=catalogue_preflight(conn,rows)
+        catalogue=catalogue_preflight(conn,rows,getattr(args,'iso3',None))
     plan={'format':'safetrip-hosted-import-plan-v1','created_at':datetime.now(timezone.utc).isoformat(),
-          'mode':'all' if getattr(args,'all_destinations',False) else 'sample',
+          'mode':'all' if getattr(args,'all_destinations',False) else 'subset' if getattr(args,'iso3',None) else 'sample',
+          'selected_iso3':sorted(args.iso3) if getattr(args,'iso3',None) else None,
           'input_sha256':digest,'parser_version':report['parser_version'],
           'sources':report['sources'],'review_required':report['review_required'],
           'capture_bytes':Path(args.input).stat().st_size,
@@ -199,13 +205,14 @@ def preflight(args):
 
 
 def verify_plan(args, report, digest):
-    if not getattr(args,'all_destinations',False): return
+    if not getattr(args,'all_destinations',False) and not getattr(args,'iso3',None): return
     if not getattr(args,'plan',None):
-        raise HostedValidationError('A full import requires --plan from a successful preflight.')
+        raise HostedValidationError('A full or explicit subset import requires --plan from a successful preflight.')
     plan=json.loads(Path(args.plan).read_text())
-    expected={'format':'safetrip-hosted-import-plan-v1','mode':'all','input_sha256':digest,
+    expected={'format':'safetrip-hosted-import-plan-v1','mode':'all' if getattr(args,'all_destinations',False) else 'subset','input_sha256':digest,
               'parser_version':report['parser_version'],'sources':report['sources'],
               'review_required':report['review_required'],'database_written':False}
+    if getattr(args,'iso3',None):expected['selected_iso3']=sorted(args.iso3)
     if any(plan.get(k)!=v for k,v in expected.items()) or plan.get('database_preflight',{}).get('missing_country_keys')!=[]:
         raise HostedValidationError('Plan does not match this validated capture/parser. Run preflight again.')
 
@@ -219,7 +226,7 @@ def ingest(args):
     config=read_config()
     with connection(config) as conn:
         check_writer(conn)
-        catalogue_preflight(conn,rows)
+        catalogue_preflight(conn,rows,getattr(args,'iso3',None))
     output=Path(args.output)
     output.parent.mkdir(parents=True,exist_ok=True)
     # Reserve result before any database write; an empty file is not a success marker.
@@ -244,8 +251,10 @@ def main():
     sub.add_parser('setup');sub.add_parser('check')
     for command in ['preflight','ingest']:
         i=sub.add_parser(command);i.add_argument('--input',required=True);i.add_argument('--output',required=True)
-        i.add_argument('--all-destinations',action='store_true',help='Explicitly select a complete worldwide capture.')
-        if command=='ingest': i.add_argument('--plan',help='Required preflight JSON for a full import.')
+        scope=i.add_mutually_exclusive_group()
+        scope.add_argument('--all-destinations',action='store_true',help='Explicitly select a complete worldwide capture.')
+        scope.add_argument('--iso3',action='append',help='Explicit bounded subset; must match capture and requires a preflight plan.')
+        if command=='ingest': i.add_argument('--plan',help='Required preflight JSON for a full or explicit subset import.')
     args=p.parse_args()
     try:
         if args.command=='setup': setup()

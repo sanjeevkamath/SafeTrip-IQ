@@ -119,6 +119,8 @@ Hosted advisory connections use the session pooler and an explicit certificate-v
 
 Start from merged main on a separate rollout branch. Capture/preview still require no database credentials. Use fresh output paths; partial captures and existing outputs are not overwritten.
 
+For targeted source corrections, `preflight`/`ingest` also accept repeated `--iso3` values. The capture must have exactly that selection, and ingest requires the checksum/parser/selection-pinned preflight plan. This does not grant access to additional tables. The default CAN/JPN/USA sample path remains available; full captures still require `--all-destinations`.
+
 ```sh
 uv run --frozen safetrip capture-advisories --all --output .local/v2/hosted-world-20261105/capture.json
 uv run --frozen safetrip ingest-advisories --input .local/v2/hosted-world-20261105/capture.json --output .local/v2/hosted-world-20261105/preview.json
