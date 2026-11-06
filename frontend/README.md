@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SafeTrip IQ website
 
-## Getting Started
+Next.js/TypeScript frontend deployed on Vercel from this directory. For the project architecture, scoring formula and setup, start with the [root README](../README.md).
 
-First, run the development server:
+## Local development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Use Node.js 22. From the repository root, start the fixture database with `bash scripts/setup_local_db.sh`. Then, from this directory:
+
+```sh
+npm ci
+npm run dev:local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The three-country synthetic seed requires no hosted credentials. `npm run dev:full` is only for the separately imported local `safetrip_full` dataset. Plain `npm run dev` uses the configured Supabase backend; use the local command for a fresh clone.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Production data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Map/search/catalogue reads use public read-only Supabase access. Official advice and current score methodology use the dedicated server-only PostgreSQL reader. Country scores use the versioned official-US-plus-clustering formula; UK warnings and regional coverage remain separate. Missing scores are unavailable data, not low risk.
 
-## Learn More
+Keep privileged credentials out of `NEXT_PUBLIC_*`. The website does not receive ingestion or score-publisher credentials. [Hosted setup](../docs/hosted-advisory-rollout.md) documents the reader connection and TLS certificate settings; [operations](../docs/operations.md) documents deployment and monitoring.
 
-To learn more about Next.js, take a look at the following resources:
+## Endpoints and checks
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/api/ready`: application/database readiness; used by Docker.
+- `/api/health`: official advice and score freshness; 503 for stale/incomplete/unavailable data.
+- `/api/refresh-status`: separate source retrieval and score publication dates.
+- `/api/scoring-status`: supported formula, schema readiness and publication coverage.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sh
+npm run test:queries
+npx tsc --noEmit
+npm run lint
+npm run build
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run test:postgres` requires the local fixture database. `npm run test:browser` requires the containerized fixture website at `http://localhost:3001`; run `bash scripts/check_containers.sh` from the repository root first. Browser tests target localhost fixtures and never modify production. See [verification evidence](../docs/v2-verification.md) for the separate read-only live checks.
