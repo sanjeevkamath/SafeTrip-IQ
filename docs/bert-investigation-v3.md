@@ -39,11 +39,11 @@ The downloaded official feed contains 223 items. Filtering duplicate cleaned tex
 The fresh feed is not used to tune parameters. Each family is selected using historical validation, selection is recorded before fresh predictions, and reports refuse overwrites. This is a new feed evaluation with overlap filtering, not proof that historical training provenance is complete or that every semantic overlap has been eliminated.
 
 ```sh
-uv run --frozen python -m scripts.run_bert_investigation \
+uv run --frozen python -m research.scripts.run_bert_investigation \
   --dataset .local/research/bert/dataset-v3c \
   --output .local/research/bert/investigation-v3c
-uv run --frozen python -m scripts.evaluate_fresh_bert_holdout
-uv run --frozen python -m scripts.evaluate_fresh_linear_holdout
+uv run --frozen python -m research.scripts.evaluate_fresh_bert_holdout
+uv run --frozen python -m research.scripts.evaluate_fresh_linear_holdout
 ```
 
 These commands record the frozen v3 experiment. Retraining it requires the v3 cleaner sources preserved in `dataset-v3c/cleaner-source/` (hash-verified against its manifest); current runtime v4 correctly refuses to retrain against v3 data. Fresh evaluation reads the already-cleaned, immutable v3 inputs directly.
@@ -100,7 +100,7 @@ The official level is the supervised target, not an input feature. ISO3 is the d
 `dataset-v4` has been prepared with the original group/split assignments preserved: 697 training, 150 validation, 150 historical test rows. No new cross-split exact duplicates or empty rows were introduced. Preparing this dataset does not reset the consumed status of the historical test or fresh feed. It is ready for a separately planned follow-up; no v4 checkpoint is approved.
 
 ```sh
-uv run --frozen python -m scripts.prepare_bert_ablation_data \
+uv run --frozen python -m research.scripts.prepare_bert_ablation_data \
   --output .local/research/bert/dataset-v4
 ```
 

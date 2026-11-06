@@ -62,8 +62,8 @@ Only then compare a cheap statistical or pretrained NLP model with this baseline
 ## Commands
 
 ```sh
-uv run --frozen python -m scripts.run_us_uk_pilot
-uv run --frozen python -m scripts.evaluate_us_uk_pilot
+uv run --frozen python -m research.scripts.run_us_uk_pilot
+uv run --frozen python -m research.scripts.evaluate_us_uk_pilot
 uv run --frozen python -m unittest discover -s tests -q
 ```
 

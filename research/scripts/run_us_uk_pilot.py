@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 from safetrip.ingestion.uk_advisories import normalize_uk, paragraphs
 from safetrip.ingestion.countries import resolve_iso3
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DESTINATIONS = {'france':'FRA','thailand':'THA','afghanistan':'AFG','india':'IND','ukraine':'UKR',
                 'japan':'JPN','canada':'CAN','mexico':'MEX','kenya':'KEN','nigeria':'NGA',
                 'turkey':'TUR','south-africa':'ZAF'}

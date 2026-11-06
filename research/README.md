@@ -22,6 +22,12 @@ Omitting `--help` executes the experiment. BERT training can download `bert-base
 
 Use `uv run --frozen python -m scripts.verify_baseline --with-clustering` to reproduce the verified historical cluster assignments without generating research charts.
 
+## Audit and evaluation tools
+
+The supported experiment/audit entry points now live in `research/scripts/`, rather than the operational `scripts/` directory. From the repository root, use `uv run --frozen --extra research python -m research.scripts.<name>`. This includes label/source audits, BERT dataset preparation, validation and fresh-feed evaluations, linear baselines and US/UK NLP pilots. These tools never run in the weekly production refresh. Moving them did not retrain or promote a model.
+
+BERT is experimental. Production uses the official US advisory level plus frozen clustering tiers; UK warnings are displayed separately. Model validation needs an independent evaluation set and a verified label/cleaning audit before any production promotion. COVID regime explanations remain hypotheses rather than established causes of transfer failure.
+
 ## Historical material
 
 `bert/json_to_csv.py`, `bert/wayback/`, the remaining clustering scripts/data/charts, and `legacy_data_preparation/` preserve the original exploration. Some retain working-directory assumptions, missing external inputs, import-time execution, or in-place data transformations. They are archival source material, not supported worker commands. Keep them until the input provenance and replacement pipeline are established; do not chain them together to refresh production data.

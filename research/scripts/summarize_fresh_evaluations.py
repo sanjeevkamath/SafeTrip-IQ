@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 import random
 
-from scripts.evaluate_bert_validation import metrics
+from research.scripts.evaluate_bert_validation import metrics
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def main():

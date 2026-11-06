@@ -1,0 +1,45 @@
+name: Monitor production freshness
+
+on:
+  schedule:
+    - cron: '43 12 * * *' # Daily 12:43 UTC, independent of the weekly refresh.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-freshness-monitor
+  cancel-in-progress: false
+
+jobs:
+  health:
+    if: github.repository == 'sanjeevkamath/SafeTrip-IQ' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check source and publication freshness independently
+        id: health
+        run: python -m scripts.check_production_health
+      - name: Record actionable failure or recovery
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          HEALTH_FAILED: ${{ steps.health.outcome != 'success' }}
+        with:
+          script: |
+            const report = require('./.github/scripts/report-operations.cjs')
+            await report({github, context, core, kind:'freshness', failed:process.env.HEALTH_FAILED === 'true'})
+      - name: Retain public health evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-health-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .local/monitor/health.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

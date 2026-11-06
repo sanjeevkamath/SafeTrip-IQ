@@ -20,4 +20,5 @@ npm run audit:production
 npx tsc --noEmit
 npm run lint
 npm run test:queries
+node --test ../tests/operations-alerts.test.cjs
 npm run build

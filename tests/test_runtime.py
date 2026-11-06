@@ -25,7 +25,7 @@ class RuntimeTests(unittest.TestCase):
         code = (
             "import importlib, sys; sys.path.insert(0, sys.argv[1]); "
             "[importlib.import_module(name) for name in "
-            "['populate_countries','populate_clustering','populate_travel_advisories','score_advisories','modify_clustering']]; "
+            "['populate_countries','populate_clustering','populate_travel_advisories','score_advisories']]; "
             "assert not {'torch','requests','supabase','dotenv'} & sys.modules.keys()"
         )
         result = subprocess.run([sys.executable, "-I", "-c", code, str(ROOT / "db/scripts")], capture_output=True, text=True, timeout=10)

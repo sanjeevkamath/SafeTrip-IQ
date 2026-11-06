@@ -81,6 +81,11 @@ test('scoring readiness uses only the reader and reports unpublished official fi
     assert.equal(status.regional_policy,'exclude')
     assert.equal(status.schema_ready,true)
     assert.equal(status.published_rows,0)
+    const health=await queries().getOperationalHealth()
+    assert.equal(health.healthy,false)
+    assert.equal(health.publication.catalogue_rows,3)
+    assert.equal(health.publication.fresh,false)
+    assert.equal(health.refresh_threshold_hours,216)
 })
 
 test('country details preserve missing country and missing optional data', async () => {

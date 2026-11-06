@@ -1,5 +1,5 @@
 import unittest
-from scripts.evaluate_bert_validation import metrics
+from research.scripts.evaluate_bert_validation import metrics
 
 
 class BertMetricsTests(unittest.TestCase):

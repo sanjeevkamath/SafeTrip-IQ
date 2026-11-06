@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from safetrip.inference.integrity import MODEL_FILES, model_fingerprint, verify_model
-from scripts.manifest_bert_candidate import candidate_manifest
+from research.scripts.manifest_bert_candidate import candidate_manifest
 
 
 class CandidateManifestTests(unittest.TestCase):

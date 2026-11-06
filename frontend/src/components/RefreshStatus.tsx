@@ -14,6 +14,12 @@ export default function RefreshStatus() {
                     setMessage('Advisory refresh time is not yet available.')
                     return
                 }
+                if (status.source_kind === 'us_uk_official') {
+                    const label = (stamp: string | null) => stamp ? new Date(stamp).toLocaleString() : 'not yet available'
+                    setMessage(`US/UK advice checked: ${label(status.published_at)}. Scores published: ${label(status.score_published_at)}.${
+                        status.overdue || status.score_overdue ? ' Weekly data refresh is overdue or incomplete.' : ''}`)
+                    return
+                }
                 const date = new Date(status.published_at)
                 if (Number.isNaN(date.getTime())) throw new Error('Invalid date')
                 const label = status.source_kind === 'state_department_feed' ? 'Advisories refreshed' :

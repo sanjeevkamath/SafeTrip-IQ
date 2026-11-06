@@ -6,10 +6,10 @@ from pathlib import Path
 import re
 from collections import Counter, defaultdict
 
-from scripts.evaluate_bert_validation import metrics
+from research.scripts.evaluate_bert_validation import metrics
 from safetrip.ingestion.advisories import clean_html_to_text, LEVEL_PATTERN, RECOMMENDATION_PATTERN
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 COVID = re.compile(r'covid|coronavirus', re.I)
 # First standard recommendation is a consistency screen, not verified source metadata.
 CUES = re.compile(r'\b(exercise normal precautions?|exercise increased caution|reconsider travel|do not travel)\b', re.I)

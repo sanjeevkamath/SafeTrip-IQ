@@ -39,7 +39,17 @@ export function getCountryDetails(iso3: string) {
 }
 
 export function getRefreshStatus() {
+    if (process.env.SAFETRIP_ADVISORY_DATABASE_URL) return read(() => postgres.getOfficialRefreshStatus())
     return read(() => adapter().getRefreshStatus())
+}
+
+export function getOperationalHealth() {
+    return read(() => {
+        if (process.env.SAFETRIP_DB_BACKEND !== 'postgres' && !process.env.SAFETRIP_ADVISORY_DATABASE_URL) {
+            throw new Error('A restricted PostgreSQL reader is required.')
+        }
+        return postgres.getOperationalHealth()
+    })
 }
 
 export function getCountryAdvisories(iso3: string) {

@@ -23,9 +23,9 @@ The validation report includes per-class precision/recall/F1, a confusion matrix
 From the repository using the existing uv environment:
 
 ```sh
-uv run --frozen python -m scripts.audit_bert_data
-uv run --frozen python -m scripts.prepare_bert_dataset
-uv run --frozen python -m scripts.evaluate_bert_validation
+uv run --frozen python -m research.scripts.audit_bert_data
+uv run --frozen python -m research.scripts.prepare_bert_dataset
+uv run --frozen python -m research.scripts.evaluate_bert_validation
 uv run --frozen python -m research.bert.train --device mps --output .local/research/bert/candidate-v2-01
 ```
 
@@ -34,7 +34,7 @@ Dataset, evaluation, and candidate paths refuse overwrites; use new versioned pa
 After the chosen candidate finishes, explicitly evaluate its test split:
 
 ```sh
-uv run --frozen python -m scripts.evaluate_bert_validation \
+uv run --frozen python -m research.scripts.evaluate_bert_validation \
   --model .local/research/bert/candidate-v2-01/model \
   --split test --final-test \
   --output .local/research/bert/candidate-v2-01/final-test.json
@@ -62,7 +62,7 @@ Next experiments should address the weak high-risk validation recall, review ret
 To generate the manifest for a separately evaluated candidate:
 
 ```sh
-uv run --frozen python -m scripts.manifest_bert_candidate \
+uv run --frozen python -m research.scripts.manifest_bert_candidate \
   --candidate .local/research/bert/candidate-v2-01
 ```
 

@@ -7,7 +7,7 @@ import time
 
 from safetrip.ingestion.advisories import CLEANING_VERSION
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def metrics(labels, predictions):

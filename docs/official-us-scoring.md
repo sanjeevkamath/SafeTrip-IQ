@@ -59,11 +59,11 @@ The helper checks the public production readiness endpoint before attempting wri
 
 5. Verify readiness reports 250 published rows (including null overall scores), 215 non-null values under the verified snapshot, source/date provenance, and correct breakdown labels. CAN/JPN should stay 10.0 and USA 6.0; PSE and BES should have no overall score while regional warnings remain visible. Compare against the saved preview and confirm BERT/clustering inputs remain unchanged. A later data refresh may change those counts; the approved input checksum, not hardcoded country counts, controls publication.
 
-The successful run's `input_payload` preserves prior numeric values and methodology fields for a reviewed restore if needed. No automatic downgrade/restore command is provided: do not delete history or re-run legacy publication to change official scores. Disable the publisher login and prepare a targeted restore transaction if post-publication review finds an issue. Transaction-failure rollback is tested separately from a deliberate post-publication restore.
+The successful run's `input_payload` preserves prior numeric values and methodology fields for a reviewed restore if needed. Do not delete history or re-run legacy publication to change official scores. The [operations guide](operations.md) describes the owner-reviewed restore transaction, rollback rehearsal and stale-restore protection. This is deliberate incident recovery, never an automatic workflow rollback. Transaction-failure rollback is tested separately from a deliberate post-publication restore.
 
 No new sources, clustering retraining, BERT inference or AWS resource changes are required for this scoring preview.
 
-For subsequent manual source refreshes and optional score publication through GitHub Actions, see [the refresh workflow guide](advisory-refresh-actions.md). That workflow reuses these scoped accounts and preview/publication checks; it does not enable a schedule.
+For subsequent manual source refreshes and optional score publication through GitHub Actions, see [the refresh workflow guide](advisory-refresh-actions.md). That workflow reuses these scoped accounts and preview/publication checks; scheduled writes require explicit activation and verified end-to-end evidence.
 
 ## Verified read-only preview — November 5, 2026
 

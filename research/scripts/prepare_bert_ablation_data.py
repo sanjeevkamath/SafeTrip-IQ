@@ -7,7 +7,7 @@ from pathlib import Path
 
 from safetrip.ingestion.advisories import CLEANING_VERSION, clean_html_to_text
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def main():

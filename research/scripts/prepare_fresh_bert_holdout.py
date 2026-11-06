@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 from safetrip.ingestion.advisories import CLEANING_VERSION, FEED_URL, parse_feed, US_CODE_TO_ISO3
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def shingles(text):
