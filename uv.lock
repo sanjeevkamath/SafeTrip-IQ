@@ -1091,6 +1091,12 @@ research = [
 ]
 
 [package.dev-dependencies]
+advisory-refresh = [
+    { name = "psycopg", extra = ["binary"] },
+    { name = "python-dotenv" },
+    { name = "requests" },
+    { name = "sqlalchemy" },
+]
 database = [
     { name = "alembic" },
     { name = "psycopg", extra = ["binary"] },
@@ -1135,6 +1141,12 @@ requires-dist = [
 provides-extras = ["research", "audit"]
 
 [package.metadata.requires-dev]
+advisory-refresh = [
+    { name = "psycopg", extras = ["binary"], specifier = "==3.2.10" },
+    { name = "python-dotenv", specifier = "==1.2.1" },
+    { name = "requests", specifier = "==2.32.5" },
+    { name = "sqlalchemy", specifier = "==2.1.4" },
+]
 database = [
     { name = "alembic", specifier = "==1.20.0" },
     { name = "psycopg", extras = ["binary"], specifier = "==3.2.10" },

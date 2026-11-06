@@ -59,6 +59,12 @@ explicit = true
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 
 [dependency-groups]
+advisory-refresh = [
+    "psycopg[binary]==3.2.10",
+    "python-dotenv==1.2.1",
+    "requests==2.32.5",
+    "sqlalchemy==2.1.4",
+]
 worker = [
     "boto3>=1.40,<2",
     "numpy==1.26.4",

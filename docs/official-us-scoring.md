@@ -63,6 +63,8 @@ The successful run's `input_payload` preserves prior numeric values and methodol
 
 No new sources, clustering retraining, BERT inference or AWS resource changes are required for this scoring preview.
 
+For subsequent manual source refreshes and optional score publication through GitHub Actions, see [the refresh workflow guide](advisory-refresh-actions.md). That workflow reuses these scoped accounts and preview/publication checks; it does not enable a schedule.
+
 ## Verified read-only preview — November 5, 2026
 
 Across 250 hosted catalogue entries, excluding regional-only US advisories yields 165 countries with both components, 47 with US advice alone, three with clustering alone, and 35 with neither. Thirty-one country scores would change. Canada and Japan remain 10.0; USA remains 6.0. There are no conflicting whole-country levels; Tonga's two whole-country documents agree and contribute one US component.
