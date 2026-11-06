@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 EXPERIMENTS = (
     ("control256", "head", 256, "none", 2, 8),
     ("long512", "head", 512, "none", 2, 8),

@@ -33,7 +33,7 @@ def main():
     from torch.utils.data import DataLoader
     from transformers import BertTokenizerFast, BertForSequenceClassification, get_linear_schedule_with_warmup
     from safetrip.ingestion.advisories import CLEANING_VERSION
-    from scripts.evaluate_bert_validation import metrics
+    from research.scripts.evaluate_bert_validation import metrics
     from safetrip.inference.document_inputs import encode_documents, pool_document_logits
 
     manifest_path = args.dataset / "manifest.json"

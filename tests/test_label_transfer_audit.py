@@ -1,6 +1,6 @@
 import unittest
-from scripts.audit_label_transfer import CUES, CUE_LABELS, HEALTH_SENTENCE, subgroup
-from scripts.audit_source_provenance import legacy_normalize
+from research.scripts.audit_label_transfer import CUES, CUE_LABELS, HEALTH_SENTENCE, subgroup
+from research.scripts.audit_source_provenance import legacy_normalize
 
 
 class LabelTransferAuditTests(unittest.TestCase):

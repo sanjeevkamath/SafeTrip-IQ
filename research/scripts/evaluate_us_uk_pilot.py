@@ -6,7 +6,7 @@ import time
 from collections import Counter
 from research.advisory_nlp.risk_evidence import extract_topics, PATTERNS
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 
 
 def main():

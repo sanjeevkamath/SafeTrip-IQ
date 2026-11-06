@@ -1,3 +1,5 @@
+> Historical planning document. The deployed V2 path is Vercel + Supabase + GitHub Actions; AWS model-serving and BERT scheduling are deferred. See [current operations](operations.md) and [the documentation index](README.md).
+
 # SafeTrip IQ production roadmap
 
 ## Objective and scope

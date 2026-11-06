@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.prepare_bert_dataset import prepare
+from research.scripts.prepare_bert_dataset import prepare
 
 
 class BertDatasetTests(unittest.TestCase):

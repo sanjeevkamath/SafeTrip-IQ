@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from scripts.audit_bert_data import audit
+from research.scripts.audit_bert_data import audit
 
 
 class BertDataAuditTests(unittest.TestCase):

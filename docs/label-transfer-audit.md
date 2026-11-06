@@ -64,8 +64,8 @@ Current status: verified historical-to-feed performance decline; plausible polic
 ## Reproduce and inspect
 
 ```sh
-uv run --frozen python -m scripts.audit_label_transfer
-uv run --frozen python -m scripts.audit_source_provenance
+uv run --frozen python -m research.scripts.audit_label_transfer
+uv run --frozen python -m research.scripts.audit_source_provenance
 ```
 
 Both refuse an existing report to preserve evidence. Generated reports are ignored under `.local/research/bert/investigation-v3c/`; the original prediction files and dataset manifests are unchanged. The numeric-normalization lineage method matches the legacy exporter but deliberately does not infer source dates.
