@@ -114,7 +114,9 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test database error handling
-        run: npm run test:queries
+        run: |
+          npm run test:queries
+          node --test ../tests/operations-alerts.test.cjs
       - name: Build website
         run: npm run build
 

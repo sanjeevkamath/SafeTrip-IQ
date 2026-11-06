@@ -1,6 +1,7 @@
 """Real scoped publication, provenance, stale-plan rejection and rollback."""
 import json
 import unittest
+from pathlib import Path
 from sqlalchemy import text,event
 from sqlalchemy.exc import DBAPIError
 import psycopg
@@ -95,6 +96,57 @@ class OfficialScoreTests(unittest.TestCase):
         with self.assertRaises(ScorePublicationError):self.publish(plan)
         with connect('reader') as c:
             self.assertEqual(c.execute("SELECT safe_trip_score FROM public.scores WHERE iso3='CAN'").fetchone()[0],9)
+
+    def restore_sql(self, run, commit=False):
+        script=(Path(__file__).resolve().parents[1]/'security/restore_official_scores.sql').read_text()
+        script=script.replace('REPLACE_WITH_INCIDENT_RUN_UUID',run)
+        return script.rsplit('ROLLBACK;',1)[0]+('COMMIT;' if commit else 'ROLLBACK;')
+
+    def test_owner_restore_rehearsal_and_commit_preserve_history_and_model_inputs(self):
+        result=self.publish(self.plan())
+        with connect('admin',autocommit=True) as c:
+            current=c.execute('SELECT iso3,'+','.join(FIELDS)+',bert_score,clustering_score FROM public.scores ORDER BY iso3').fetchall()
+            c.execute(self.restore_sql(result['run_id']))  # default dry run rolls back
+            self.assertEqual(c.execute('SELECT iso3,'+','.join(FIELDS)+',bert_score,clustering_score FROM public.scores ORDER BY iso3').fetchall(),current)
+            c.execute(self.restore_sql(result['run_id'],commit=True))
+            events=c.execute("SELECT run_id FROM public.pipeline_runs WHERE command='restore-official-scores' AND metadata->>'restored_publication'=%s",(result['run_id'],)).fetchall()
+            self.runs.extend(row[0] for row in events)
+            self.assertEqual(len(events),1)
+            self.assertEqual(c.execute('SELECT iso3,'+','.join(FIELDS)+',bert_score,clustering_score FROM public.scores ORDER BY iso3').fetchall(),self.original)
+            self.assertEqual(c.execute('SELECT count(*) FROM public.official_score_history WHERE run_id=%s',(result['run_id'],)).fetchone()[0],3)
+            with self.assertRaises(psycopg.errors.RaiseException):
+                c.execute(self.restore_sql(result['run_id'],commit=True))
+            c.execute('ROLLBACK')
+
+    def test_restore_rejects_a_newer_publication_and_changed_model_inputs(self):
+        first=self.publish(self.plan())
+        second=self.publish(self.plan())
+        with connect('admin',autocommit=True) as c:
+            with self.assertRaises(psycopg.errors.RaiseException):c.execute(self.restore_sql(first['run_id'],commit=True))
+            c.execute('ROLLBACK')
+            prior=c.execute("SELECT bert_score FROM public.scores WHERE iso3='CAN'").fetchone()[0]
+            c.execute("UPDATE public.scores SET bert_score=3 WHERE iso3='CAN'")
+            try:
+                with self.assertRaises(psycopg.errors.RaiseException):c.execute(self.restore_sql(second['run_id'],commit=True))
+                c.execute('ROLLBACK')
+            finally:c.execute("UPDATE public.scores SET bert_score=%s WHERE iso3='CAN'",(prior,))
+
+    def test_restore_removes_only_score_rows_that_did_not_previously_exist(self):
+        original=next(row for row in self.original if row[0]=='USA')
+        with connect('admin') as c:c.execute("DELETE FROM public.scores WHERE iso3='USA'")
+        try:
+            result=self.publish(self.plan())
+            with connect('admin',autocommit=True) as c:
+                c.execute(self.restore_sql(result['run_id'],commit=True))
+                events=c.execute("SELECT run_id FROM public.pipeline_runs WHERE command='restore-official-scores' AND metadata->>'restored_publication'=%s",(result['run_id'],)).fetchall()
+                self.runs.extend(row[0] for row in events)
+                self.assertEqual(c.execute("SELECT count(*) FROM public.scores WHERE iso3='USA'").fetchone()[0],0)
+                self.assertEqual(c.execute("SELECT count(*) FROM public.countries WHERE iso3='USA'").fetchone()[0],1)
+        finally:
+            with connect('admin') as c:
+                fields=['iso3',*FIELDS,'bert_score','clustering_score']
+                c.execute(sql.SQL('INSERT INTO public.scores ({}) VALUES ({}) ON CONFLICT(iso3) DO NOTHING').format(
+                    sql.SQL(',').join(map(sql.Identifier,fields)),sql.SQL(',').join(sql.Placeholder() for _ in fields)),original)
 
     def test_role_cannot_modify_predictions_tiers_raw_advisories_or_erase_scores(self):
         statements=["UPDATE public.scores SET bert_score=0 WHERE false",'UPDATE public.scores SET clustering_score=0 WHERE false',

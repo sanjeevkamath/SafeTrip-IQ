@@ -65,7 +65,7 @@ class RefreshTests(unittest.TestCase):
                 'database_written': False, 'sources': {'us_state': 2, 'uk_fcdo': 3}, 'review_required': 1,
                 'database_preflight': {'missing_country_keys': [], 'previous_documents_not_in_capture': []}}
         # An explicitly unresolved compound is retained for review, not guessed into a score.
-        self.assertEqual(check_preflight(plan)['unresolved_records'], 1)
+        self.assertEqual(check_preflight(plan)['review_required_records'], 1)
         for change in [{'sources': {'us_state': 0, 'uk_fcdo': 3}}, {'mode': 'subset'},
                        {'parser_version': 'obsolete'}, {'database_written': True},
                        {'database_preflight': {'missing_country_keys': ['NEW'], 'previous_documents_not_in_capture': []}},

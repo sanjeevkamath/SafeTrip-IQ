@@ -15,6 +15,7 @@ function load(path, mocks = {}, env = {}) {
     }).outputText
     vm.runInNewContext(code, { exports, URL, console: {error() {}}, process: {env}, require(name) {
         if (Object.hasOwn(mocks,name)) return mocks[name]
+        if (name === './operational-health') return load('../src/lib/server/operational-health.ts')
         return name === 'server-only' ? {} : require(name)
     } })
     return exports
@@ -22,6 +23,33 @@ function load(path, mocks = {}, env = {}) {
 const Component = load('../src/components/OfficialAdvisories.tsx').default
 const ScoreBreakdown = load('../src/components/SafetyScoreDetails.tsx').default
 const {advisoryPoolOptions} = load('../src/lib/server/advisory-reader.ts')
+const {operationalHealth} = load('../src/lib/server/operational-health.ts')
+
+test('weekly health requires complete fresh US/UK coverage and a complete score publication', () => {
+    const now=Date.parse('2026-11-06T12:00:00Z')
+    const recent='2026-11-05T12:00:00Z', old='2026-10-20T12:00:00Z'
+    const publication={schema_ready:true,catalogue_rows:250,published_rows:250,oldest_published_at:recent}
+    const sources=['us_state','uk_fcdo'].map(source=>({source,documents:2,oldest_fetched_at:recent}))
+    assert.equal(operationalHealth(publication,sources,now).healthy,true)
+    for (const bad of [{...publication,published_rows:249},{...publication,oldest_published_at:old},
+                       {...publication,oldest_published_at:null},{...publication,schema_ready:false}]) {
+        assert.equal(operationalHealth(bad,sources,now).healthy,false)
+    }
+    assert.equal(operationalHealth(publication,sources.slice(1),now).healthy,false)
+    assert.equal(operationalHealth(publication,[{...sources[0],oldest_fetched_at:old},sources[1]],now).healthy,false)
+    assert.equal(operationalHealth(publication,[{...sources[0],oldest_fetched_at:'2027-01-01'},sources[1]],now).healthy,false)
+    // A recent maximum must not hide a stale oldest document.
+    assert.equal(operationalHealth(publication,[{...sources[0],oldest_fetched_at:old,newest_fetched_at:recent},sources[1]],now).healthy,false)
+})
+
+test('hosted refresh status uses official retrieval and publication dates, not legacy BERT refreshes', async () => {
+    const expected={source_kind:'us_uk_official',published_at:'2026-11-05',score_published_at:'2026-11-04'}
+    const api=load('../src/lib/server/queries.ts',{
+        './supabase-queries':{getRefreshStatus:()=>{throw new Error('Legacy status must not be used')}},
+        './postgres-queries':{getOfficialRefreshStatus:async()=>expected},
+    },{SAFETRIP_ADVISORY_DATABASE_URL:'synthetic-reader'})
+    assert.equal(await api.getRefreshStatus(),expected)
+})
 const document = {iso3:'PSE',document_id:'one',version_id:'v1',source:'us_state',
     source_url:'https://travel.state.gov/example',source_public_updated_at:'2026-11-01T12:00:00Z',
     fetched_at:'2026-11-04T12:00:00Z',us_level:4,uk_alert_status:null,

@@ -2,6 +2,7 @@ import 'server-only'
 import { Pool } from 'pg'
 import type { Country, Score, Culture, AdvisorySummary, WarningExcerpt } from './types'
 import { advisoryReader } from './advisory-reader'
+import { operationalHealth } from './operational-health'
 
 const state = globalThis as typeof globalThis & { safetripReaderPool?: Pool }
 const SCORE_PROJECTION = `SELECT iso3,safe_trip_score,bert_score,clustering_score,
@@ -25,6 +26,36 @@ export async function getScoringStatus() {
         count(*) FILTER(WHERE to_jsonb(s)->>'scoring_version'='us-official-cluster-v1')::integer AS published_rows
         FROM public.scores s`)
     return {supported_formula:'us-official-cluster-v1',regional_policy:'exclude',...rows[0]}
+}
+
+export async function getOperationalHealth() {
+    const db = process.env.SAFETRIP_ADVISORY_DATABASE_URL ? advisoryReader() : reader()
+    const [publication, sources] = await Promise.all([
+        db.query(`SELECT
+            (SELECT count(*)=6 FROM pg_attribute WHERE attrelid='public.scores'::regclass
+                AND NOT attisdropped AND attname IN ('official_us_level','official_us_component',
+                    'clustering_component','scoring_version','score_run_id','score_published_at')) AS schema_ready,
+            (SELECT count(*)::integer FROM public.countries) AS catalogue_rows,
+            count(*) FILTER(WHERE to_jsonb(s)->>'scoring_version'='us-official-cluster-v1'
+                AND to_jsonb(s)->>'score_run_id' IS NOT NULL
+                AND to_jsonb(s)->>'score_published_at' IS NOT NULL)::integer AS published_rows,
+            min((to_jsonb(s)->>'score_published_at')::timestamptz)
+                FILTER(WHERE to_jsonb(s)->>'scoring_version'='us-official-cluster-v1') AS oldest_published_at
+            FROM public.scores s`),
+        db.query(`SELECT source,count(DISTINCT document_id)::integer AS documents,
+            min(fetched_at) AS oldest_fetched_at FROM public.advisory_summaries GROUP BY source`),
+    ])
+    // Source dates measure retrieval, not the age of the government document.
+    return operationalHealth(publication.rows[0], sources.rows)
+}
+
+export async function getOfficialRefreshStatus() {
+    const health = await getOperationalHealth()
+    const stamps = Object.values(health.sources).map(source => source.oldest_fetched_at)
+    return { published_at: stamps.every(Boolean) ? stamps.sort()[0] : null,
+        source_kind: 'us_uk_official', overdue: !Object.values(health.sources).every(source => source.fresh),
+        refresh_threshold_hours: health.refresh_threshold_hours,
+        score_published_at: health.publication.oldest_published_at, score_overdue: !health.publication.fresh }
 }
 
 export async function getCountryAdvisories(iso3: string) {

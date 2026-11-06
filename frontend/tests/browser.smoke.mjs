@@ -66,12 +66,23 @@ test('map and search failures remain visible to users', { timeout: 30000 }, asyn
 }))
 
 test('freshness distinguishes unknown, local overdue, and unavailable data', { timeout: 30000 }, async () => withPage(async page => {
+    const health=await page.request.get(base+'/api/health')
+    assert.equal(health.status(),503) // synthetic legacy seeds are never a fresh official publication
+    assert.equal((await health.json()).healthy,false)
+    assert.equal((await page.request.get(base+'/api/ready')).status(),200)
     await page.goto(base)
     await page.getByRole('status').filter({ hasText: 'not yet available' }).waitFor()
     await page.route('**/api/refresh-status', route => route.fulfill({ contentType: 'application/json',
         body: JSON.stringify({ published_at: '2026-01-01T00:00:00Z', source_kind: 'local_xml', overdue: true }) }))
     await page.reload()
     await page.getByRole('status').filter({ hasText: /Local XML data refreshed:.*over 48 hours/ }).waitFor()
+    await page.unroute('**/api/refresh-status')
+    await page.route('**/api/refresh-status', route => route.fulfill({contentType:'application/json',body:JSON.stringify({
+        source_kind:'us_uk_official',published_at:'2026-11-01T00:00:00Z',score_published_at:'2026-10-20T00:00:00Z',
+        overdue:false,score_overdue:true,refresh_threshold_hours:216,
+    })}))
+    await page.reload()
+    await page.getByRole('status').filter({hasText:/US\/UK advice checked:.*Scores published:.*Weekly data refresh is overdue/}).waitFor()
     await page.unroute('**/api/refresh-status')
     await page.route('**/api/refresh-status', route => route.fulfill({ status: 503, body: '{}' }))
     await page.reload()

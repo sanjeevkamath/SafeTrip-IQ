@@ -1,6 +1,6 @@
 # Manual US/UK refresh with GitHub Actions
 
-The workflow **Refresh official advisories** runs on GitHub-hosted Ubuntu only when manually started on `main`, after successful CI for that exact commit. There is no schedule, AWS task, model download or retraining. A lightweight locked `advisory-refresh` dependency group installs HTTP and PostgreSQL clients without PyTorch, pandas or Transformers.
+The workflow **Refresh official advisories** runs on GitHub-hosted Ubuntu when manually started on `main` or by the guarded weekly schedule, after successful CI for that exact commit. Scheduled writes require explicit activation and a verified end-to-end manual run; see [operations](operations.md). There is no AWS task, model download or retraining. A lightweight locked `advisory-refresh` dependency group installs HTTP and PostgreSQL clients without PyTorch, pandas or Transformers.
 
 ## What a run changes
 
@@ -20,7 +20,7 @@ Use existing generated scoped account files; do not upload `.env`, an admin URL,
 In repository **Settings → Environments**, create:
 
 - `advisory-refresh`: restrict deployments to `main`; contains only the writer secret below.
-- `score-publication`: restrict deployments to `main`; contains only the publisher secret below. Enable **Required reviewers** so the publish job waits while you inspect this run's scoring preview. For a solo operator, allow self-review. Without that protection, selecting Publish scores allows publication immediately after the refresh job succeeds.
+- `score-publication`: restrict deployments to `main`; contains only the publisher secret below. For optional manual approval, enable **Required reviewers** and allow self-review for a solo operator. For the chosen automatic weekly publication policy, leave required reviewers off: validation and the scoped publisher guard writes. Enabling reviewers pauses scheduled publication until approval.
 
 From the project directory, send the files directly to GitHub Secrets using stdin. These commands do not print the values:
 
@@ -40,14 +40,14 @@ The CA is a public trust certificate; storing it here keeps runner configuration
 
 Merge this workflow, wait for main CI to pass, then open **Actions → Refresh official advisories → Run workflow**, choose `main` and leave Publish scores **unchecked**. This is a real advisory import, not a database dry run; scores remain unchanged. Inspect the Actions summary and download the `advisory-refresh-<run>-<attempt>` artifact to review the import plan, import result and scoring preview.
 
-For an end-to-end run, start it again with Publish scores selected. It captures fresh inputs; it does not reuse the earlier run's preview. At the `score-publication` environment approval, inspect this new run's artifact/summary, especially coverage, changes, unresolved mappings and the input hash. Approve to publish that exact preview. The successful publication summary records the run ID and independent verification result. Check a few live country pages, including regional-only destinations and a Level 4 country.
+For an end-to-end run, start it again with Publish scores selected. It captures fresh inputs; it does not reuse the earlier run's preview. Inspect this new run's artifact/summary, especially coverage, changes, unresolved mappings and the input hash. If environment reviewers are enabled, approve that exact preview; otherwise publication proceeds automatically after validation. The successful publication summary records the run ID and independent verification result. Check a few live country pages, including regional-only destinations and a Level 4 country.
 
 Artifacts are retained for 14 days and include public government-source responses, normalized plans, score snapshots and publication evidence. They contain no connection configurations. On a public repository, treat these artifacts as publicly accessible. Credentials are written only under `.local/supabase`, never uploaded or cached, and removed in an `always()` cleanup step on disposable runners.
 
 If a run fails, review the failed stage and database run ledger before retrying, particularly if a publication result was ambiguous. Empty or partial JSON is not evidence of a commit. Prefer a new full workflow run rather than rerunning only a failed job: artifact names include the run attempt to avoid mixing evidence. Do not manually republish a successful preview; its input fingerprint is stale by design.
 
-## Later scheduling
+## Weekly scheduling and monitoring
 
-After a successful manual import and approved publication, decide whether to schedule refresh-only or unattended publication. A weekly cron can be added then, alongside failure/freshness notifications and an explicit approval policy. Required environment review still pauses a scheduled publication; unattended mode requires a deliberate change. Existing AWS foundations remain available if we later move execution to Fargate. This implementation does not enable an AWS or GitHub schedule.
+The weekly cron, activation receipt, daily freshness monitor, notification setup and recovery procedure are documented in [operations](operations.md). Neither merging a cron nor setting a secret is sufficient to enable scheduled writes: the activation variables and a successful manual publication/read-back receipt are required.
 
 This is data refresh automation, distinct from CI checks and worker-image publishing. It consumes GitHub Actions runner time and artifact storage; availability and allowance depend on the repository/account. No continuously running compute is introduced.

@@ -18,7 +18,7 @@ def check_preflight(plan):
     catalogue = plan.get('database_preflight', {})
     if catalogue.get('missing_country_keys') != [] or catalogue.get('previous_documents_not_in_capture') != []:
         raise ValueError('Missing country keys or previously stored source documents require review')
-    return {'source_documents': sources, 'unresolved_records': plan['review_required']}
+    return {'source_documents': sources, 'review_required_records': plan['review_required']}
 
 
 def check_preview(report):
