@@ -1,35 +1,45 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import styles from './ExploreHome.module.css'
+
+type RefreshData = {
+    published_at: string | null
+    overdue?: boolean
+    score_published_at?: string | null
+    score_overdue?: boolean
+}
+
+const timestampFormat = new Intl.DateTimeFormat('en', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+    timeZone: 'UTC', timeZoneName: 'short',
+})
 
 export default function RefreshStatus() {
-    const [message, setMessage] = useState('Checking advisory refresh time…')
+    const [data, setData] = useState<RefreshData | null>()
     useEffect(() => {
         const controller = new AbortController()
         fetch('/api/refresh-status', { cache: 'no-store', signal: controller.signal })
             .then(async response => {
-                if (!response.ok) throw new Error('Unavailable')
-                const status = await response.json()
-                if (!status) {
-                    setMessage('Advisory refresh time is not yet available.')
-                    return
-                }
-                if (status.source_kind === 'us_uk_official') {
-                    const label = (stamp: string | null) => stamp ? new Date(stamp).toLocaleString() : 'not yet available'
-                    setMessage(`US/UK advice checked: ${label(status.published_at)}. Scores published: ${label(status.score_published_at)}.${
-                        status.overdue || status.score_overdue ? ' Weekly data refresh is overdue or incomplete.' : ''}`)
-                    return
-                }
-                const date = new Date(status.published_at)
-                if (Number.isNaN(date.getTime())) throw new Error('Invalid date')
-                const label = status.source_kind === 'state_department_feed' ? 'Advisories refreshed' :
-                    status.source_kind === 'local_xml' ? 'Local XML data refreshed' : 'Data refreshed (source unverified)'
-                setMessage(`${label}: ${date.toLocaleString()}.${status.overdue ? ' Last refresh was over 48 hours ago.' : ''}`)
+                if (!response.ok) throw new Error('Refresh status unavailable')
+                setData(await response.json())
             })
             .catch(() => {
-                if (!controller.signal.aborted) setMessage('Advisory refresh time is temporarily unavailable.')
+                if (!controller.signal.aborted) setData(null)
             })
         return () => controller.abort()
     }, [])
-    return <p className="text-sm text-gray-600" role="status">{message}</p>
+
+    const latest = Math.max(...[data?.published_at, data?.score_published_at]
+        .map(value => value ? Date.parse(value) : NaN).filter(Number.isFinite))
+    const updatedAt = Number.isFinite(latest) ? new Date(latest) : null
+
+    return (
+        <footer className={styles.freshness} role="status">
+            Last updated at: {updatedAt
+                ? <time dateTime={updatedAt.toISOString()}>{timestampFormat.format(updatedAt)}</time>
+                : data === undefined ? 'Checking…' : <span title="No recorded update timestamp">—</span>}
+            {(data?.overdue || data?.score_overdue) && <span className={styles.overdue}> · refresh overdue</span>}
+        </footer>
+    )
 }

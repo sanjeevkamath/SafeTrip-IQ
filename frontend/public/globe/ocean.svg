@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="976" height="976" viewBox="0 0 976 976" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle id="Ocean / depth" cx="488" cy="488" r="488" fill="url(#paint0_radial_0_85)"/>
+<defs>
+<radialGradient id="paint0_radial_0_85" cx="520" cy="540" r="545" gradientUnits="userSpaceOnUse">
+<stop stop-color="#1C4354"/>
+<stop offset="0.62" stop-color="#102B3A"/>
+<stop offset="1" stop-color="#0D2432"/>
+</radialGradient>
+</defs>
+</svg>

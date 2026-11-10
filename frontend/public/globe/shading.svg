@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="976" height="976" viewBox="0 0 976 976" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle id="Spherical light falloff" cx="488" cy="488" r="488" fill="url(#paint0_radial_0_39)"/>
+<defs>
+<radialGradient id="paint0_radial_0_39" cx="480" cy="462" r="535" gradientUnits="userSpaceOnUse">
+<stop stop-color="#090F14" stop-opacity="0"/>
+<stop offset="0.28" stop-color="#090F14" stop-opacity="0.025"/>
+<stop offset="0.56" stop-color="#090F14" stop-opacity="0.09"/>
+<stop offset="0.78" stop-color="#090F14" stop-opacity="0.19"/>
+<stop offset="0.92" stop-color="#090F14" stop-opacity="0.28"/>
+<stop offset="1" stop-color="#090F14" stop-opacity="0.34"/>
+</radialGradient>
+</defs>
+</svg>

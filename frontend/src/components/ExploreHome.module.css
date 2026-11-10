@@ -1,0 +1,269 @@
+@font-face {
+    font-family: Manrope;
+    src: url('/fonts/manrope.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+}
+
+.home {
+    --canvas: #090f14;
+    --panel: #121d25;
+    --text: #f2f0e9;
+    --muted: #adb9b9;
+    --sand: #d8c19a;
+    --line: #28383f;
+    --land: #33494b;
+    --boundary: #71847f;
+    --gutter: clamp(24px, 3vw, 56px);
+    --rail-width: clamp(270px, 22vw, 365px);
+    --inset: clamp(26px, 3.8vh, 42px);
+    position: relative;
+    display: grid;
+    grid-template: auto 1fr / var(--rail-width) minmax(0, 1fr);
+    min-height: max(760px, 100svh);
+    padding: var(--inset) var(--gutter) 38px;
+    overflow: hidden;
+    color: var(--text);
+    background: var(--canvas);
+    font-family: Manrope, Arial, sans-serif;
+    color-scheme: dark;
+}
+
+.brand, .rail { position: relative; z-index: 1; }
+.brand {
+    grid-column: 1;
+    width: fit-content;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.45;
+}
+.brand span { color: var(--sand); }
+.brand button { cursor: pointer; }
+
+.rail {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding-top: clamp(28px, 4.3vh, 44px);
+}
+
+.search { position: relative; z-index: 2; }
+.searchField {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+}
+.searchField input {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 44px 10px 15px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+}
+.searchField input::placeholder { color: var(--muted); }
+.searchField svg { position: absolute; right: 15px; pointer-events: none; }
+.searchResults {
+    position: absolute;
+    inset: calc(100% + 12px) 0 auto;
+    padding: 10px;
+    border-radius: 5px;
+    background: var(--panel);
+}
+.searchResults [role='listbox'] { max-height: min(340px, 46vh); overflow-y: auto; }
+.searchResult {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: 3px;
+    text-align: left;
+    cursor: pointer;
+}
+.searchResult:hover, .searchResult[aria-selected='true'] { background: var(--line); }
+.searchResult strong { font-size: 15px; }
+.searchResult small { display: block; color: var(--muted); font-size: 12px; }
+.resultScore { flex: none; text-align: right; }
+.searchResults > p, .searchResults > button { margin: 6px 10px; }
+
+.sidebar { margin-top: clamp(28px, 4vh, 40px); }
+.discovery { padding-top: clamp(8px, 1.4vh, 14px); }
+.discovery h1 {
+    margin: 0 0 20px;
+    font-size: clamp(44px, 3.375vw, 58px);
+    font-weight: 800;
+    line-height: 1.12;
+}
+.discovery > p { max-width: 330px; color: var(--muted); line-height: 1.5; }
+.featured { margin-top: clamp(23px, 3.8vh, 38px); max-width: 302px; }
+.featured h2 { margin-bottom: 6px; color: var(--muted); font-size: 16px; font-weight: 700; }
+.featured button {
+    display: flex;
+    width: 100%;
+    min-height: clamp(54px, 7.2vh, 76px);
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    text-align: left;
+    cursor: pointer;
+}
+.featured button:hover { color: var(--sand); }
+.featured button small { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+.featured svg { flex: none; margin: 5px 5px 0 0; color: var(--sand); }
+
+.preview {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 24px;
+    background: var(--panel);
+}
+.countryHeading { display: flex; align-items: center; gap: 10px; }
+.flag { flex: none; object-fit: contain; }
+.flagEmoji { flex: none; font-size: 27px; line-height: 1; }
+.preview h2 { font-size: clamp(30px, 2.375vw, 40px); font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.preview h3 { font-size: 14px; font-weight: 700; }
+.preview p { margin-top: 5px; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.preview .region, .preview .explanation { font-size: 13px; }
+.preview .region { margin: 0 0 6px; }
+.preview .score strong { margin-right: 3px; color: var(--text); font-size: 31px; font-weight: 800; }
+.guideLink, .textAction { display: inline-flex; align-items: center; gap: 8px; width: fit-content; }
+.guideLink {
+    padding: 10px 14px;
+    border-radius: 4px;
+    color: var(--canvas);
+    background: var(--sand);
+    font-size: 14px;
+    font-weight: 700;
+}
+.guideLink:hover { background: var(--text); }
+.textAction { color: var(--sand); font-size: 13px; font-weight: 600; cursor: pointer; }
+.textAction:hover { text-decoration: underline; }
+
+.railFooter { margin-top: auto; padding-top: 20px; }
+.freshness, .hoverHelp, .railFooter > [role='alert'] { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.freshness { min-height: 75px; }
+.hoverHelp { margin-bottom: 21px; }
+.overdue, .railFooter > [role='alert'] { color: var(--sand); }
+.railFooter > [role='alert'] { margin-bottom: 8px; }
+
+.map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 28%;
+    right: 0;
+}
+.globe {
+    position: absolute;
+    top: 2%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(65vw, 98svh);
+    aspect-ratio: 1;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
+.globe:active { cursor: grabbing; }
+.globe:focus { outline: none; }
+.globeFocus {
+    visibility: hidden;
+    fill: none;
+    stroke: var(--sand);
+    stroke-width: 2px;
+    pointer-events: none;
+}
+.globe:focus-visible .globeFocus { visibility: visible; }
+.land {
+    fill: var(--land);
+    stroke: var(--boundary);
+    stroke-width: 0.65px;
+    stroke-opacity: 0.68;
+    cursor: pointer;
+}
+.land[data-active='true'] { fill: var(--sand); stroke: var(--sand); }
+.countryLabel { fill: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.countryLabel:focus { outline: none; }
+.countryLabel:focus-visible text { text-decoration: underline; }
+.countryLabel[data-active='true'] { fill: var(--sand); }
+.countryLabel text { paint-order: stroke; stroke: #090f14b3; stroke-width: 2px; stroke-linejoin: round; }
+.oceanLabel { fill: var(--muted); opacity: 0.58; font-size: 13px; pointer-events: none; }
+.mapControls {
+    position: absolute;
+    right: var(--gutter);
+    bottom: 6.8%;
+    display: grid;
+    gap: 8px;
+}
+.mapControls button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    background: var(--panel);
+    cursor: pointer;
+}
+.mapControls button:hover:not(:disabled) { color: var(--sand); background: var(--line); }
+.mapControls button:disabled { opacity: 0.55; cursor: default; }
+.gestures {
+    position: absolute;
+    left: 21%;
+    bottom: 3.6%;
+    display: flex;
+    gap: 16px;
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+}
+.mapMessage {
+    position: absolute;
+    left: 27%;
+    top: 45%;
+    width: min(320px, 55%);
+    padding: 12px 16px;
+    color: var(--muted);
+    background: var(--panel);
+    font-size: 14px;
+}
+.home :is(button, input, a):focus-visible { outline: 2px solid var(--sand); outline-offset: 3px; }
+
+@media (max-width: 850px) {
+    .home {
+        grid-template: auto auto auto / minmax(0, 1fr);
+        min-height: 100svh;
+        overflow: visible;
+        padding-bottom: 24px;
+    }
+    .rail { grid-row: 2; display: contents; }
+    .search { grid-row: 2; margin-top: 22px; }
+    .sidebar { grid-row: 4; margin-top: 16px; }
+    .discovery { padding-top: 0; }
+    .discovery h1 { margin-bottom: 12px; }
+    .discovery h1 br { display: none; }
+    .featured { margin-top: 24px; }
+    .featured button { min-height: 58px; }
+    .preview { max-width: 480px; padding: 20px; }
+    .railFooter { grid-row: 5; padding-top: 24px; }
+    .freshness { min-height: 0; }
+    .hoverHelp { display: none; }
+    .map { grid-row: 3; position: relative; inset: auto; width: 100%; max-width: 620px; margin: 12px auto 0; }
+    .globe { position: relative; inset: auto; transform: none; display: block; width: 100%; }
+    .mapControls { right: 0; bottom: 3%; }
+    .gestures { position: static; justify-content: center; font-size: 12px; margin-top: 3px; }
+    .mapMessage { left: 15%; width: 65%; }
+}
+
+@media (pointer: coarse) {
+    .hoverHelp { display: none; }
+}
