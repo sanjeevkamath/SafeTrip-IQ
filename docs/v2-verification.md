@@ -49,7 +49,9 @@ No restore, downgrade or failure injection was performed against production. Rec
 
 The actual new health query code was also run read-only against hosted PostgreSQL. It reported healthy data: 217 mapped US documents, 224 mapped UK documents and all 250 official score publications were fresh. Raw document counts differ because unresolved compounds are excluded from the display projection. No new permissions were needed.
 
-The new daily monitor/public health HTTP endpoint and weekly cron require deployment of this change before their live behavior can be verified. Email delivery depends on the maintainer's GitHub notification settings. An independent external monitor has not been configured; a total GitHub outage or all scheduled workflows being disabled can affect both refresh and monitoring. See [operations](operations.md).
+After PR #23 was merged, production `/api/ready`, `/api/health`, `/api/refresh-status` and `/api/scoring-status` all returned HTTP 200. The deployed health route reported both sources fresh and all 250 official score publications fresh. The [first manually dispatched production monitor](https://github.com/sanjeevkamath/SafeTrip-IQ/actions/runs/42304087643) succeeded against the live endpoint. All PR #23 CI jobs, including container/Chromium checks, passed.
+
+The weekly activation switch is enabled with verified manual run `42287664477`. The first scheduled weekly execution remains to be observed; the healthy monitor run does not prove a future cron delivery or failure-email delivery. Email delivery depends on the maintainer's GitHub notification settings. An independent external monitor has not been configured; a total GitHub outage or all scheduled workflows being disabled can affect both refresh and monitoring. See [operations](operations.md).
 
 The production path uses official advisory values plus frozen clustering tiers; BERT remains experimental and AWS remains a separate benchmark/deployment lab. No retraining, extra hazard index, database migration to another provider, or frontend redesign is included.
 
