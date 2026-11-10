@@ -8,43 +8,56 @@ let browser
 before(async () => { browser = await chromium.launch({ headless: true }) })
 after(async () => { await browser?.close() })
 
-// Geometry is a synthetic Canada polygon; application data comes from real Postgres.
-const geometry = { type: 'FeatureCollection', features: [{ type: 'Feature',
-    properties: { ISO_A3: 'CAN', NAME: 'Canada' },
-    geometry: { type: 'Polygon', coordinates: [[[-120,50],[-120,60],[-100,60],[-100,50],[-120,50]]] },
-}] }
 async function withPage(run) {
     const context = await browser.newContext()
     try {
         await context.route('**/*', route => {
             const url = route.request().url()
-            if (url.startsWith('https://raw.githubusercontent.com/nvkelso/')) {
-                return route.fulfill({ contentType: 'application/json', body: JSON.stringify(geometry) })
-            }
             return new URL(url).origin === new URL(base).origin ? route.continue() : route.abort()
         })
         await run(await context.newPage())
     } finally { await context.close() }
 }
 
-test('search navigates to a real country and shows its score', { timeout: 30000 }, async () => withPage(async page => {
+async function selectCanadaFromSearch(page) {
+    const search = page.getByRole('combobox', { name: 'Search a country' })
+    await search.fill('Can')
+    await page.getByRole('option', { name: /Canada/ }).waitFor()
+    await search.press('ArrowDown')
+    await search.press('Enter')
+    return page.getByRole('region', { name: 'Country preview' })
+}
+
+test('keyboard search selects a real country and opens its guide', { timeout: 30000 }, async () => withPage(async page => {
     await page.goto(base)
-    await page.getByPlaceholder('Search for a country...').fill('Can')
-    await page.locator('li').filter({ hasText: 'Canada' }).click()
+    const preview = await selectCanadaFromSearch(page)
+    await preview.getByRole('heading', { name: 'Canada', exact: true }).waitFor()
+    await preview.getByText('10.0', { exact: true }).waitFor()
+    await preview.getByRole('link', { name: 'View country guide' }).click()
     await page.waitForURL('**/country/CAN')
     await page.getByRole('heading', { name: 'Canada', exact: true }).waitFor()
     await page.getByText('10.0', { exact: true }).waitFor()
 }))
 
-test('map uses seeded scores, shows tooltip, and navigates', { timeout: 30000 }, async () => withPage(async page => {
+test('globe zooms, previews a country, and pins the preview', { timeout: 30000 }, async () => withPage(async page => {
     await page.goto(base)
-    const country = page.locator('path.rsm-geography').first()
-    await country.waitFor()
-    assert.equal(await country.getAttribute('fill'), 'rgb(0, 128, 0)')
-    await country.hover()
-    await page.getByText('Safety Score: 10.0/10', { exact: true }).waitFor()
-    await country.click()
-    await page.waitForURL('**/country/CAN')
+    await page.locator('path[data-country="CAN"]').waitFor()
+    await page.getByRole('button', { name: 'Zoom in' }).click()
+    assert.equal(await page.getByRole('button', { name: 'Zoom out' }).isEnabled(), true)
+    await page.getByRole('button', { name: 'Reset globe view' }).click()
+    assert.equal(await page.getByRole('button', { name: 'Zoom out' }).isEnabled(), false)
+    const preview = await selectCanadaFromSearch(page)
+    await preview.getByRole('heading', { name: 'Canada', exact: true }).waitFor()
+    await preview.getByRole('button', { name: 'Clear selection' }).click()
+    await page.getByRole('button', { name: 'Select Canada on the globe' }).hover()
+    await preview.getByText('10.0', { exact: true }).waitFor()
+    await preview.getByRole('button', { name: 'Keep this preview open' }).click()
+    await preview.getByRole('link', { name: 'View country guide' }).waitFor()
+    await page.getByRole('button', { name: 'Reset globe view' }).click()
+    await page.getByRole('button', { name: 'Select Portugal on the globe' }).hover()
+    await preview.getByRole('heading', { name: 'Portugal', exact: true }).waitFor()
+    await page.getByRole('button', { name: 'SafeTrip IQ, reset view' }).hover()
+    await preview.getByRole('heading', { name: 'Canada', exact: true }).waitFor()
 }))
 
 test('clustering-only country has no BERT score; unknown country is 404', { timeout: 30000 }, async () => withPage(async page => {
@@ -56,35 +69,40 @@ test('clustering-only country has no BERT score; unknown country is 404', { time
     assert.equal((await page.goto(base + '/country/ZZZ')).status(), 404)
 }))
 
-test('map and search failures remain visible to users', { timeout: 30000 }, async () => withPage(async page => {
+test('score and search failures are visible while the globe remains available', { timeout: 30000 }, async () => withPage(async page => {
     await page.route('**/api/countries-scores', route => route.fulfill({ status: 503, body: '{}' }))
     await page.route('**/api/search?*', route => route.fulfill({ status: 503, body: '{}' }))
     await page.goto(base)
-    await page.getByRole('alert').filter({ hasText: 'Map data is temporarily unavailable' }).waitFor()
-    await page.getByPlaceholder('Search for a country...').fill('Can')
+    await page.getByRole('alert').filter({ hasText: 'Country scores are temporarily unavailable' }).waitFor()
+    await page.getByRole('button', { name: 'Select Portugal on the globe' }).hover()
+    await page.getByText('Score unavailable', { exact: true }).waitFor()
+    await page.getByRole('combobox', { name: 'Search a country' }).fill('Can')
     await page.getByRole('alert').filter({ hasText: 'Search is temporarily unavailable' }).waitFor()
 }))
 
-test('freshness distinguishes unknown, local overdue, and unavailable data', { timeout: 30000 }, async () => withPage(async page => {
+test('freshness displays the latest recorded update and marks overdue refreshes', { timeout: 30000 }, async () => withPage(async page => {
     const health=await page.request.get(base+'/api/health')
     assert.equal(health.status(),503) // synthetic legacy seeds are never a fresh official publication
     assert.equal((await health.json()).healthy,false)
     assert.equal((await page.request.get(base+'/api/ready')).status(),200)
     await page.goto(base)
-    await page.getByRole('status').filter({ hasText: 'not yet available' }).waitFor()
+    const status = page.getByRole('status').filter({ hasText: 'Last updated at:' })
+    await status.getByText('—', { exact: true }).waitFor()
     await page.route('**/api/refresh-status', route => route.fulfill({ contentType: 'application/json',
         body: JSON.stringify({ published_at: '2026-01-01T00:00:00Z', source_kind: 'local_xml', overdue: true }) }))
     await page.reload()
-    await page.getByRole('status').filter({ hasText: /Local XML data refreshed:.*over 48 hours/ }).waitFor()
+    await status.locator('time[datetime="2026-01-01T00:00:00.000Z"]').waitFor()
+    await status.getByText('· refresh overdue', { exact: true }).waitFor()
     await page.unroute('**/api/refresh-status')
     await page.route('**/api/refresh-status', route => route.fulfill({contentType:'application/json',body:JSON.stringify({
         source_kind:'us_uk_official',published_at:'2026-11-01T00:00:00Z',score_published_at:'2026-10-20T00:00:00Z',
         overdue:false,score_overdue:true,refresh_threshold_hours:216,
     })}))
     await page.reload()
-    await page.getByRole('status').filter({hasText:/US\/UK advice checked:.*Scores published:.*Weekly data refresh is overdue/}).waitFor()
+    await status.locator('time[datetime="2026-11-01T00:00:00.000Z"]').waitFor()
+    await status.getByText('· refresh overdue', { exact: true }).waitFor()
     await page.unroute('**/api/refresh-status')
     await page.route('**/api/refresh-status', route => route.fulfill({ status: 503, body: '{}' }))
     await page.reload()
-    await page.getByRole('status').filter({ hasText: 'temporarily unavailable' }).waitFor()
+    await status.getByText('—', { exact: true }).waitFor()
 }))

@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="988" height="988" viewBox="0 0 988 988" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle id="Atmosphere" cx="494" cy="494" r="494" fill="url(#paint0_radial_0_187)"/>
+<defs>
+<radialGradient id="paint0_radial_0_187" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(494 494) scale(494)">
+<stop stop-color="#173340" stop-opacity="0"/>
+<stop offset="0.92" stop-color="#173340" stop-opacity="0"/>
+<stop offset="0.98" stop-color="#385C6A" stop-opacity="0.22"/>
+<stop offset="1" stop-color="#090F14" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

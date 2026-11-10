@@ -1,236 +1,206 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import {
-    ComposableMap,
-    Geographies,
-    Geography,
-    ZoomableGroup,
-    type MapGeography
-} from 'react-simple-maps'
-import { scaleLinear } from 'd3-scale'
+import { geoDistance, geoOrthographic, geoPath } from 'd3-geo'
+import { Minus, Plus, RotateCcw } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, type Dispatch, type PointerEvent, type SetStateAction } from 'react'
+import { initialCamera, type Destination, type GlobeCamera, type WorldGeometry } from '@/lib/explore'
+import styles from './ExploreHome.module.css'
 
-const geoUrl = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson'
+const size = 1040
+const center = size / 2
+const radius = 488
+const maxZoom = 2.5
+const atlanticLabels = new Set(['ISL', 'NOR', 'GBR', 'FRA', 'PRT', 'TUR', 'MAR', 'DZA', 'EGY', 'NGA', 'BRA'])
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
-interface CountryScore {
-    iso3: string
-    name: string
-    flag_url: string | null
-    safe_trip_score: number | null
-}
+type Drag = { id: number; x: number; y: number; moved: boolean; start: GlobeCamera }
 
-export default function WorldMap() {
-    const [countryData, setCountryData] = useState<Record<string, { score: number | null, flag_url: string | null, name: string }>>({})
-    const [hoveredCountry, setHoveredCountry] = useState<{ name: string, score: number | null, flag_url: string | null } | null>(null)
-    const [error, setError] = useState(false)
-    const [loading, setLoading] = useState(true)
-    const router = useRouter()
+export default function WorldMap({ geometry, failed, camera, onCameraChange, active, onPreview, onSelect, onLeaveGlobe, onOpenCountry, countries }: {
+    geometry?: WorldGeometry
+    failed: boolean
+    camera: GlobeCamera
+    onCameraChange: Dispatch<SetStateAction<GlobeCamera>>
+    active: string | null
+    onPreview: (iso3: string | null) => void
+    onSelect: (iso3: string) => void
+    onLeaveGlobe: () => void
+    onOpenCountry: (iso3: string) => void
+    countries: Map<string, Destination>
+}) {
+    const surface = useRef<SVGSVGElement>(null)
+    const drag = useRef<Drag | null>(null)
+    const suppressClick = useRef(false)
+    const [surfaceWidth, setSurfaceWidth] = useState(size)
+    const { longitude, latitude, zoom } = camera
+    const atHome = longitude === initialCamera.longitude && latitude === initialCamera.latitude && zoom === 1
+    const labelSize = Math.max(13, 11 * size / surfaceWidth)
+    const labelHeight = Math.max(26, labelSize * 1.8)
 
     useEffect(() => {
-        fetch('/api/countries-scores')
-            .then(res => {
-                if (!res.ok) throw new Error("Map data unavailable")
-                return res.json()
-            })
-            .then((data: CountryScore[]) => {
-                const dataMap: Record<string, { score: number | null, flag_url: string | null, name: string }> = {}
-                data.forEach(country => {
-                    dataMap[country.iso3] = {
-                        score: country.safe_trip_score,
-                        flag_url: country.flag_url,
-                        name: country.name
-                    }
-                })
-                setCountryData(dataMap)
-                setLoading(false)
-            })
-            .catch(err => {
-                console.error('Failed to load country scores:', err)
-                setError(true)
-                setLoading(false)
-            })
-    }, [])
-
-    // Color scale: red (0) -> yellow (5) -> green (10)
-    const colorScale = scaleLinear<string>()
-        .domain([0, 4, 7, 10])
-        .range(['#8B0000', '#CC3300', '#CCCC00', '#008000'])
-        .clamp(true)
-
-    const getCountryColor = (geo: MapGeography): string => {
-        let iso3 = geo.properties.ISO_A3
-        if (!iso3 || iso3 === '-99' || iso3.startsWith('-')) {
-            iso3 = geo.properties.ADM0_A3 || geo.properties.ISO_A3_EH
+        const svg = surface.current
+        if (!svg) return
+        const observer = new ResizeObserver(([entry]) => {
+            if (entry.contentRect.width) setSurfaceWidth(entry.contentRect.width)
+        })
+        observer.observe(svg)
+        function onWheel(event: WheelEvent) {
+            event.preventDefault()
+            const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY
+            onCameraChange(previous => ({ ...previous, zoom: clamp(previous.zoom * Math.exp(-delta * 0.0016), 1, maxZoom) }))
         }
-        iso3 = iso3?.toUpperCase()
-        if (!iso3) return '#d4d4d8' // gray for unknown
+        svg.addEventListener('wheel', onWheel, { passive: false })
+        return () => {
+            observer.disconnect()
+            svg.removeEventListener('wheel', onWheel)
+        }
+    }, [onCameraChange])
 
-        const data = countryData[iso3]
-        if (!data || data.score === null) return '#d4d4d8' // gray for no data
+    const projection = useMemo(() => geoOrthographic().translate([center, center]).scale(radius)
+        .rotate([-longitude, -latitude]).clipAngle(90).precision(0.35), [longitude, latitude])
 
-        return colorScale(data.score)
+    const shapes = useMemo(() => {
+        const path = geoPath(projection).digits(1)
+        return (geometry?.features ?? []).flatMap(feature => {
+            const d = path(feature)
+            return d ? [{ country: feature.properties, d }] : []
+        })
+    }, [geometry, projection])
+
+    const labels = useMemo(() => {
+        const origin: [number, number] = [longitude, latitude]
+        const candidates = shapes.map(({ country }) => ({ country, distance: geoDistance(origin, country.center) }))
+            .filter(({ country, distance }) => distance < 1.4 &&
+                (!atHome || country.iso3 === active || atlanticLabels.has(country.iso3)))
+            .sort((a, b) => Number(b.country.iso3 === active) - Number(a.country.iso3 === active) ||
+                Number(b.country.iso3 === 'PRT' && atHome) - Number(a.country.iso3 === 'PRT' && atHome) ||
+                a.country.rank - b.country.rank || a.distance - b.distance)
+
+        const placed: { iso3: string; name: string; x: number; y: number; halfWidth: number; marker: boolean; pointX: number }[] = []
+        for (const { country } of candidates) {
+            const point = projection(country.center)
+            if (!point) continue
+            const [pointX, y] = point.map(coordinate => center + (coordinate - center) * zoom)
+            const marker = country.iso3 === 'PRT' && atHome
+            const x = marker ? pointX - 65 : pointX
+            const name = countries.get(country.iso3)?.name ?? country.name
+            const halfWidth = Math.max(labelSize * 1.8, name.length * labelSize * 0.3)
+            if (x - halfWidth < 0 || x + halfWidth > size || y < labelHeight || y > size - labelHeight) continue
+            if (placed.some(other => Math.abs(y - other.y) < labelHeight &&
+                Math.abs(x - other.x) < halfWidth + other.halfWidth + 8)) continue
+            placed.push({ iso3: country.iso3, name, x, y, halfWidth, marker, pointX })
+            if (placed.length >= (zoom > 1.5 ? 18 : 12)) break
+        }
+        return placed
+    }, [active, atHome, countries, labelHeight, labelSize, latitude, longitude, projection, shapes, zoom])
+
+    function startDrag(event: PointerEvent<SVGSVGElement>) {
+        if (!event.isPrimary || event.button !== 0) return
+        suppressClick.current = false
+        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, start: camera, moved: false }
     }
 
-    const [position, setPosition] = useState({ coordinates: [0, 0], zoom: 1 })
-
-    const handleZoomIn = () => {
-        if (position.zoom >= 4) return
-        setPosition(pos => ({ ...pos, zoom: pos.zoom * 1.5 }))
+    function moveDrag(event: PointerEvent<SVGSVGElement>) {
+        const current = drag.current
+        if (!current || event.pointerId !== current.id) return
+        const dx = event.clientX - current.x
+        const dy = event.clientY - current.y
+        if (!current.moved && Math.hypot(dx, dy) < 4) return
+        if (!current.moved) {
+            current.moved = true
+            suppressClick.current = true
+            onPreview(null)
+            event.currentTarget.setPointerCapture(event.pointerId)
+        }
+        const degreesPerPixel = 112 / (event.currentTarget.clientWidth * current.start.zoom)
+        onCameraChange({
+            ...current.start,
+            longitude: current.start.longitude - dx * degreesPerPixel,
+            latitude: clamp(current.start.latitude + dy * degreesPerPixel, -85, 85),
+        })
     }
 
-    const handleZoomOut = () => {
-        if (position.zoom <= 1) return
-        setPosition(pos => ({ ...pos, zoom: pos.zoom / 1.5 }))
+    function finishDrag(event: PointerEvent<SVGSVGElement>) {
+        if (drag.current?.id === event.pointerId) drag.current = null
     }
 
-    const handleMoveEnd = (position: { coordinates: [number, number], zoom: number }) => {
-        setPosition(position)
+    function changeZoom(factor: number) {
+        onCameraChange(previous => ({ ...previous, zoom: clamp(previous.zoom * factor, 1, maxZoom) }))
     }
 
-    if (error) return <p role="alert" className="p-8 text-center">Map data is temporarily unavailable. Please reload to try again.</p>
-
-    if (loading) {
-        return (
-            <div className="w-full h-[500px] flex items-center justify-center bg-gray-50 rounded-xl">
-                <p className="text-gray-500">Loading map data...</p>
-            </div>
-        )
+    function showPreview(iso3: string, pointerType: string) {
+        if (pointerType === 'mouse' && !drag.current?.moved) onPreview(iso3)
     }
 
     return (
-        <div className="w-full relative">
-            <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
-                <button
-                    onClick={handleZoomIn}
-                    className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 text-gray-700 font-bold border border-gray-200"
-                    aria-label="Zoom in"
-                >
-                    +
-                </button>
-                <button
-                    onClick={handleZoomOut}
-                    className="w-8 h-8 flex items-center justify-center bg-white rounded-md shadow-md hover:bg-gray-50 text-gray-700 font-bold border border-gray-200"
-                    aria-label="Zoom out"
-                >
-                    −
-                </button>
-            </div>
-
-            <ComposableMap
-                projectionConfig={{
-                    scale: 147
+        <section className={styles.map} aria-label="Explore the globe">
+            <svg ref={surface} viewBox={`0 0 ${size} ${size}`} className={styles.globe}
+                role="group" aria-label="World globe. Use arrow keys to rotate." tabIndex={0}
+                onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
+                onPointerLeave={event => {
+                    if (drag.current?.moved) return
+                    finishDrag(event)
+                    onLeaveGlobe()
                 }}
-                style={{
-                    width: '100%',
-                    height: 'auto'
+                onKeyDown={event => {
+                    if (event.target !== event.currentTarget) return
+                    const horizontal = event.key === 'ArrowLeft' ? -15 : event.key === 'ArrowRight' ? 15 : 0
+                    const vertical = event.key === 'ArrowUp' ? 15 : event.key === 'ArrowDown' ? -15 : 0
+                    if (!horizontal && !vertical) return
+                    event.preventDefault()
+                    onPreview(null)
+                    onCameraChange(previous => ({
+                        ...previous,
+                        longitude: previous.longitude + horizontal,
+                        latitude: clamp(previous.latitude + vertical, -85, 85),
+                    }))
                 }}
             >
-                <ZoomableGroup
-                    zoom={position.zoom}
-                    center={position.coordinates as [number, number]}
-                    onMoveEnd={handleMoveEnd}
-                    minZoom={1}
-                    maxZoom={4}
-                >
-                    <Geographies geography={geoUrl}>
-                        {({ geographies }: { geographies: MapGeography[] }) =>
-                            geographies.map((geo: MapGeography) => {
-                                let iso3 = geo.properties.ISO_A3
-                                if (!iso3 || iso3 === '-99' || iso3.startsWith('-')) {
-                                    iso3 = geo.properties.ADM0_A3 || geo.properties.ISO_A3_EH
-                                }
-                                iso3 = iso3?.toUpperCase()
-                                const data = iso3 ? countryData[iso3] : undefined
-
-                                return (
-                                    <Geography
-                                        key={geo.rsmKey}
-                                        geography={geo}
-                                        fill={getCountryColor(geo)}
-                                        stroke="#fff"
-                                        strokeWidth={0.5}
-                                        style={{
-                                            default: { outline: 'none' },
-                                            hover: {
-                                                fill: '#3b82f6',
-                                                outline: 'none',
-                                                cursor: 'pointer'
-                                            },
-                                            pressed: { outline: 'none' }
-                                        }}
-                                        onMouseEnter={() => {
-                                            const name = geo.properties.NAME || geo.properties.name || 'Unknown'
-                                            setHoveredCountry({
-                                                name,
-                                                score: data?.score ?? null,
-                                                flag_url: data?.flag_url ?? null
-                                            })
-                                        }}
-                                        onMouseLeave={() => {
-                                            setHoveredCountry(null)
-                                        }}
-                                        onClick={() => {
-                                            if (iso3 && data) {
-                                                router.push(`/country/${iso3}`)
-                                            }
-                                        }}
-                                    />
-                                )
-                            })
-                        }
-                    </Geographies>
-                </ZoomableGroup>
-            </ComposableMap>
-
-            {/* Tooltip */}
-            {hoveredCountry && (
-                <div className="absolute top-4 left-4 bg-black/90 text-white px-4 py-3 rounded-lg text-sm pointer-events-none shadow-xl border border-gray-700 flex items-center gap-3 z-50">
-                    {hoveredCountry.flag_url && (
-                        <img
-                            src={hoveredCountry.flag_url}
-                            alt={`${hoveredCountry.name} flag`}
-                            className="w-8 h-6 object-cover rounded shadow-sm border border-gray-600"
-                        />
-                    )}
-                    <div>
-                        <div className="font-bold text-base">{hoveredCountry.name}</div>
-                        <div className={hoveredCountry.score !== null ?
-                            (hoveredCountry.score >= 7 ? "text-green-400" :
-                                hoveredCountry.score >= 4 ? "text-yellow-400" : "text-red-400")
-                            : "text-gray-400"}>
-                            {hoveredCountry.score !== null
-                                ? `Safety Score: ${hoveredCountry.score.toFixed(1)}/10`
-                                : 'No safety data available'}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Legend */}
-            {/*         .range(['#8B0000', '#CC3300', '#CCCC00', '#008000']) */}
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4 text-sm px-4">
-                <span className="text-gray-600 font-medium">Safety Score:</span>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#8B0000' }}></div>
-                    <span className="text-gray-600">Low (0-4)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#CC3300' }}></div>
-                    <span className="text-gray-600">Medium (4-7)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#CCCC00' }}></div>
-                    <span className="text-gray-600">High (8-9.9)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#008000' }}></div>
-                    <span className="text-gray-600">Extremely High (10)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-gray-300"></div>
-                    <span className="text-gray-600">No Data</span>
-                </div>
-            </div>        </div>
+                <g transform={`translate(${center} ${center}) scale(${zoom}) translate(-${center} -${center})`}>
+                    <image href="/globe/atmosphere.svg" x={26} y={26} width={988} height={988} />
+                    <image href="/globe/ocean.svg" x={32} y={32} width={976} height={976} />
+                    {shapes.map(({ country, d }) => <path key={country.iso3} d={d} data-country={country.iso3}
+                        className={styles.land} data-active={country.iso3 === active}
+                        onPointerEnter={event => showPreview(country.iso3, event.pointerType)}
+                        onClick={() => { if (!suppressClick.current) onSelect(country.iso3) }}
+                        onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(country.iso3) }}
+                    />)}
+                    <g pointerEvents="none">
+                        <image href="/globe/shading.svg" x={32} y={32} width={976} height={976} />
+                        <image href="/globe/rim.svg" x={32} y={32} width={976} height={976} opacity={0.45} />
+                    </g>
+                </g>
+                {atHome && surfaceWidth >= 500 && <text x={242} y={452} className={styles.oceanLabel}>Atlantic Ocean</text>}
+                {labels.map(({ iso3, name, x, y, marker, pointX, halfWidth }) =>
+                    <g key={iso3} className={styles.countryLabel} role="button" tabIndex={0}
+                        aria-label={`Select ${name} on the globe`} data-active={iso3 === active || marker}
+                        onPointerEnter={event => showPreview(iso3, event.pointerType)}
+                        onFocus={() => onPreview(iso3)}
+                        onClick={() => { if (!suppressClick.current) onSelect(iso3) }}
+                        onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(iso3) }}
+                        onKeyDown={event => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return
+                            event.preventDefault()
+                            onSelect(iso3)
+                        }}>
+                        <rect x={x - halfWidth} y={y - labelHeight / 2} width={halfWidth * 2} height={labelHeight} fill="transparent" />
+                        {marker && <image href="/globe/marker.svg" x={pointX - 3} y={y - 3} width={6} height={6} />}
+                        <text x={x} y={y} fontSize={labelSize} dominantBaseline="central" textAnchor="middle">{name}</text>
+                    </g>
+                )}
+                <circle className={styles.globeFocus} cx={center} cy={center} r={radius}
+                    vectorEffect="non-scaling-stroke" aria-hidden="true" />
+            </svg>
+            {failed && <p className={styles.mapMessage} role="alert">Map data is temporarily unavailable. You can still search for a country.</p>}
+            {!failed && !geometry && <p className={styles.mapMessage} role="status">Loading the globe…</p>}
+            <div className={styles.mapControls} role="group" aria-label="Globe controls">
+                <button type="button" aria-label="Zoom in" onClick={() => changeZoom(1.2)} disabled={zoom >= maxZoom}><Plus size={18} /></button>
+                <button type="button" aria-label="Zoom out" onClick={() => changeZoom(1 / 1.2)} disabled={zoom <= 1}><Minus size={18} /></button>
+                <button type="button" aria-label="Reset globe view" onClick={() => {
+                    onPreview(null)
+                    onCameraChange(initialCamera)
+                }}><RotateCcw size={17} /></button>
+            </div>
+            <p className={styles.gestures}>Drag to rotate <span>·</span> Scroll to zoom</p>
+        </section>
     )
 }
