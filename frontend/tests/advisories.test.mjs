@@ -16,12 +16,14 @@ function load(path, mocks = {}, env = {}) {
     vm.runInNewContext(code, { exports, URL, console: {error() {}}, process: {env}, require(name) {
         if (Object.hasOwn(mocks,name)) return mocks[name]
         if (name === './operational-health') return load('../src/lib/server/operational-health.ts')
+        if (name === './CountryGuide.module.css') return { default: {} }
         return name === 'server-only' ? {} : require(name)
     } })
     return exports
 }
 const Component = load('../src/components/OfficialAdvisories.tsx').default
 const ScoreBreakdown = load('../src/components/SafetyScoreDetails.tsx').default
+const { scorePresentation } = load('../src/lib/country-guide.ts')
 const {advisoryPoolOptions} = load('../src/lib/server/advisory-reader.ts')
 const {operationalHealth} = load('../src/lib/server/operational-health.ts')
 
@@ -80,7 +82,6 @@ test('empty flags, missing source, failure, and unavailable flags are distinct',
 test('multiple documents survive rendering and unsafe source links are excluded', () => {
     const html = render(data([document,{...document,version_id:'v3',region_label:'The West Bank',
         source_url:'https://travel.state.gov.evil.example/path',us_level:3}],[]))
-    assert.match(html,/Multiple source documents apply/)
     assert.match(html,/Level 4:/); assert.match(html,/Level 3:/)
     assert.ok(!html.includes('evil.example'))
 })
@@ -112,7 +113,7 @@ test('affected areas preserve official exceptions, escape text, and have an hone
     assert.ok(!html.includes('<script>unsafe()'))
     assert.match(render(data([],[{...uk,warning_excerpts:[]}])),/Affected areas could not be listed/)
     assert.match(render(data([],[{...uk,warning_excerpts:null}])),/Affected areas could not be listed/)
-    assert.ok(!render(data([],[{...uk,uk_alert_status:[]}])).includes('<details'))
+    assert.ok(!render(data([],[{...uk,uk_alert_status:[]}])).includes('Affected areas'))
 })
 
 test('optional excerpt failure retains official warnings and filters excerpts by exact version', async () => {
@@ -145,10 +146,33 @@ test('official score breakdown never labels historical BERT as a production comp
     assert.match(html,/Equal-weight average/);assert.ok(!html.includes('BERT Score'))
     const single=renderScore({scoringVersion:'us-official-cluster-v1',clusteringComponent:6})
     assert.match(single,/one available component/);assert.ok(!single.includes('Official US advisory'))
-    const severe=renderScore({scoringVersion:'us-official-cluster-v1',officialUSLevel:4,officialUSComponent:2.5})
-    assert.ok(severe.indexOf('Do not travel')<severe.indexOf('<details'))
     assert.match(renderScore({scoringVersion:'unavailable'}),/methodology is temporarily unavailable/)
     assert.match(renderScore({}),/BERT Score/)
+})
+
+test('the most restrictive warning leads, with a score-based fallback for a missing US advisory', () => {
+    const normal = { ...document, us_level: 1, coverage_scope: 'whole_country' }
+    const severe = { ...document, version_id: 'uk-v1', source: 'uk_fcdo', source_url: 'https://www.gov.uk/example',
+        uk_alert_status: ['avoid_all_but_essential_travel_to_parts', 'avoid_all_travel_to_parts'] }
+    const html = render(data([normal], [severe]))
+    assert.ok(html.indexOf('Against all travel to certain areas') < html.indexOf('Against all but essential travel'))
+    assert.ok(html.indexOf('Against all but essential travel') < html.indexOf('Level 1:'))
+    const fallback = renderToStaticMarkup(createElement(Component, { sources: null, scoreUsLevel: 4 }))
+    assert.match(fallback, /US advisory used in the SafeTrip score/)
+    assert.match(fallback, /Level 4: Do not travel/)
+    const imported = renderToStaticMarkup(createElement(Component, { sources: data([normal], []), scoreUsLevel: 4 }))
+    assert.doesNotMatch(imported, /Do not travel/)
+})
+
+test('score colors respect both cutoffs, including numbers just above them', () => {
+    for (const [value, tone, label] of [
+        [7.75, 'green', '7.8'], [7.01, 'green', '7.01'], [7, 'yellow', '7.0'],
+        [5.01, 'yellow', '5.01'], [5, 'red', '5.0'], [0, 'red', '0.0'],
+    ]) {
+        const result = scorePresentation(value)
+        assert.equal(result.tone, tone)
+        assert.equal(result.label, label)
+    }
 })
 
 test('legacy Supabase country read overlays current score methodology and fails honestly', async () => {

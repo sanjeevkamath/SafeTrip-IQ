@@ -1,28 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { featuredDestinations, initialCamera, type Destination, type GlobeCamera, type WorldGeometry } from '@/lib/explore'
 import RefreshStatus from './RefreshStatus'
+import CountryFlag from './CountryFlag'
 import SearchBar from './SearchBar'
 import WorldMap from './WorldMap'
 import styles from './ExploreHome.module.css'
-
-function CountryFlag({ destination }: { destination: Destination }) {
-    const [failedUrl, setFailedUrl] = useState<string>()
-    const { flag_url: url, iso2 } = destination
-    if (url && failedUrl !== url) {
-        return <Image className={styles.flag} src={url} width={36} height={24} alt=""
-            unoptimized onError={() => setFailedUrl(url)} />
-    }
-    const code = iso2?.toUpperCase()
-    if (!code || !/^[A-Z]{2}$/.test(code)) return null
-    const emoji = String.fromCodePoint(...Array.from(code, letter => 0x1f1e6 + letter.charCodeAt(0) - 65))
-    return <span className={styles.flagEmoji} aria-hidden="true">{emoji}</span>
-}
+import palette from './AtlanticSand.module.css'
 
 export default function ExploreHome() {
     const router = useRouter()
@@ -88,7 +76,7 @@ export default function ExploreHome() {
     }
 
     return (
-        <main className={styles.home}>
+        <main className={`${palette.theme} ${styles.home}`}>
             <header className={styles.brand}>
                 <button type="button" aria-label="SafeTrip IQ, reset view" onClick={resetView}>
                     SafeTrip <span>IQ</span>
@@ -105,7 +93,8 @@ export default function ExploreHome() {
                             <div>
                                 {continent && <p className={styles.region}>{continent}</p>}
                                 <div className={styles.countryHeading}>
-                                    {data && <CountryFlag key={data.iso3} destination={data} />}
+                                    {data && <CountryFlag flagUrl={data.flag_url} iso2={data.iso2}
+                                        className={styles.flag} fallbackClassName={styles.flagEmoji} />}
                                     <h2>{countryName}</h2>
                                 </div>
                                 {featured && <p>{featured.detail}</p>}

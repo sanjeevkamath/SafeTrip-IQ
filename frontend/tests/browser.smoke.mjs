@@ -63,9 +63,9 @@ test('globe zooms, previews a country, and pins the preview', { timeout: 30000 }
 test('clustering-only country has no BERT score; unknown country is 404', { timeout: 30000 }, async () => withPage(async page => {
     await page.goto(base + '/country/USA')
     await page.getByText('6.0', { exact: true }).waitFor()
-    await page.getByRole('button', { name: 'Score Breakdown' }).click()
-    await page.getByText('Clustering Score', { exact: true }).waitFor()
-    assert.equal(await page.getByText('BERT Score', { exact: true }).count(), 0)
+    await page.getByText('Score Breakdown', { exact: true }).click()
+    await page.getByText(/^Clustering Score\b/).waitFor()
+    assert.equal(await page.getByText(/^BERT Score\b/).count(), 0)
     assert.equal((await page.goto(base + '/country/ZZZ')).status(), 404)
 }))
 

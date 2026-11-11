@@ -1,18 +1,4 @@
-@font-face {
-    font-family: Manrope;
-    src: url('/fonts/manrope.ttf') format('truetype');
-    font-style: normal;
-    font-weight: 200 800;
-    font-display: swap;
-}
-
 .home {
-    --canvas: #090f14;
-    --panel: #121d25;
-    --text: #f2f0e9;
-    --muted: #adb9b9;
-    --sand: #d8c19a;
-    --line: #28383f;
     --land: #33494b;
     --boundary: #71847f;
     --gutter: clamp(24px, 3vw, 56px);
@@ -24,10 +10,6 @@
     min-height: max(760px, 100svh);
     padding: var(--inset) var(--gutter) 38px;
     overflow: hidden;
-    color: var(--text);
-    background: var(--canvas);
-    font-family: Manrope, Arial, sans-serif;
-    color-scheme: dark;
 }
 
 .brand, .rail { position: relative; z-index: 1; }
