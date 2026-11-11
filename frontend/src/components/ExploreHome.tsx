@@ -110,9 +110,7 @@ export default function ExploreHome() {
                                     View country guide <ArrowRight size={15} aria-hidden="true" />
                                 </Link>}
                                 <button type="button" className={styles.textAction} onClick={clearSelection}>Clear selection</button>
-                            </> : !selected && active && <button type="button" className={styles.textAction} onClick={() => selectCountry(active)}>
-                                Keep this preview open <ArrowRight size={15} aria-hidden="true" />
-                            </button>}
+                            </> : null}
                         </section>
                     ) : (
                         <section className={styles.discovery}>
@@ -137,7 +135,7 @@ export default function ExploreHome() {
             </div>
             <WorldMap geometry={geometry} failed={geometryFailed} camera={camera} onCameraChange={setCamera}
                 active={active} onPreview={setHovered} onSelect={selectCountry}
-                onLeaveGlobe={() => { if (selected) setHovered(null) }}
+                onReset={resetView}
                 onOpenCountry={iso3 => {
                     if (countries.has(iso3) || searchDestination?.iso3 === iso3) router.push(`/country/${iso3}`)
                 }}

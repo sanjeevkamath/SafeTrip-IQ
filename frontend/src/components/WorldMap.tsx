@@ -21,7 +21,7 @@ function zoomCamera(camera: GlobeCamera, factor: number): GlobeCamera {
     return zoom === camera.zoom ? camera : { ...camera, zoom }
 }
 
-export default function WorldMap({ geometry, failed, camera, onCameraChange, active, onPreview, onSelect, onLeaveGlobe, onOpenCountry, countries }: {
+export default function WorldMap({ geometry, failed, camera, onCameraChange, active, onPreview, onSelect, onReset, onOpenCountry, countries }: {
     geometry?: WorldGeometry
     failed: boolean
     camera: GlobeCamera
@@ -29,7 +29,7 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
     active: string | null
     onPreview: (iso3: string | null) => void
     onSelect: (iso3: string) => void
-    onLeaveGlobe: () => void
+    onReset: () => void
     onOpenCountry: (iso3: string) => void
     countries: Map<string, Destination>
 }) {
@@ -82,19 +82,18 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
                 Number(b.country.iso3 === 'PRT' && atHome) - Number(a.country.iso3 === 'PRT' && atHome) ||
                 a.country.rank - b.country.rank || a.distance - b.distance)
 
-        const placed: { iso3: string; name: string; x: number; y: number; halfWidth: number; marker: boolean; pointX: number }[] = []
+        const placed: { iso3: string; name: string; x: number; y: number; halfWidth: number }[] = []
         for (const { country } of candidates) {
             const point = projection(country.center)
             if (!point) continue
             const [pointX, y] = point.map(coordinate => center + (coordinate - center) * zoom)
-            const marker = country.iso3 === 'PRT' && atHome
-            const x = marker ? pointX - 65 : pointX
+            const x = country.iso3 === 'PRT' && atHome ? pointX - 65 : pointX
             const name = countries.get(country.iso3)?.name ?? country.name
             const halfWidth = Math.max(labelSize * 1.8, name.length * labelSize * 0.3)
             if (x - halfWidth < 0 || x + halfWidth > size || y < labelHeight || y > size - labelHeight) continue
             if (placed.some(other => Math.abs(y - other.y) < labelHeight &&
                 Math.abs(x - other.x) < halfWidth + other.halfWidth + 8)) continue
-            placed.push({ iso3: country.iso3, name, x, y, halfWidth, marker, pointX })
+            placed.push({ iso3: country.iso3, name, x, y, halfWidth })
             if (placed.length >= (zoom > 1.5 ? 18 : 12)) break
         }
         return placed
@@ -138,20 +137,20 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
         onCameraChange(previous => zoomCamera(previous, factor))
     }
 
-    function showPreview(iso3: string, pointerType: string) {
-        if (pointerType === 'mouse' && !drag.current) onPreview(iso3)
-    }
-
     return (
         <section className={styles.map} aria-label="Explore the globe">
             <div ref={surface} className={styles.globeSurface}
                 onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
                 onLostPointerCapture={finishDrag}
                 onDragStart={event => event.preventDefault()}
+                onPointerOver={event => {
+                    if (event.pointerType !== 'mouse' || drag.current || !(event.target instanceof Element)) return
+                    onPreview(event.target.closest('[data-country]')?.getAttribute('data-country') ?? null)
+                }}
                 onPointerLeave={event => {
                     if (drag.current?.moved) return
                     finishDrag(event)
-                    onLeaveGlobe()
+                    onPreview(null)
                 }}
             >
                 <svg viewBox={`0 0 ${size} ${size}`} className={styles.globe}
@@ -175,7 +174,6 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
                         <image href="/globe/ocean.svg" x={32} y={32} width={976} height={976} />
                         {shapes.map(({ country, d }) => <path key={country.iso3} d={d} data-country={country.iso3}
                             className={styles.land} data-active={country.iso3 === active}
-                            onPointerEnter={event => showPreview(country.iso3, event.pointerType)}
                             onClick={() => { if (!suppressClick.current) onSelect(country.iso3) }}
                             onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(country.iso3) }}
                         />)}
@@ -185,11 +183,13 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
                         </g>
                     </g>
                     {atHome && surfaceWidth >= 500 && <text x={242} y={452} className={styles.oceanLabel}>Atlantic Ocean</text>}
-                    {labels.map(({ iso3, name, x, y, marker, pointX, halfWidth }) =>
+                    {labels.map(({ iso3, name, x, y, halfWidth }) =>
                         <g key={iso3} className={styles.countryLabel} role="button" tabIndex={0}
-                            aria-label={`Select ${name} on the globe`} data-active={iso3 === active || marker}
-                            onPointerEnter={event => showPreview(iso3, event.pointerType)}
-                            onFocus={() => onPreview(iso3)}
+                            aria-label={`Select ${name} on the globe`} data-country={iso3} data-active={iso3 === active}
+                            onFocus={event => {
+                                if (event.currentTarget.matches(':focus-visible')) onPreview(iso3)
+                            }}
+                            onBlur={() => onPreview(null)}
                             onClick={() => { if (!suppressClick.current) onSelect(iso3) }}
                             onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(iso3) }}
                             onKeyDown={event => {
@@ -198,7 +198,6 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
                                 onSelect(iso3)
                             }}>
                             <rect x={x - halfWidth} y={y - labelHeight / 2} width={halfWidth * 2} height={labelHeight} fill="transparent" />
-                            {marker && <image href="/globe/marker.svg" x={pointX - 3} y={y - 3} width={6} height={6} />}
                             <text x={x} y={y} fontSize={labelSize} dominantBaseline="central" textAnchor="middle">{name}</text>
                         </g>
                     )}
@@ -211,10 +210,7 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
             <div className={styles.mapControls} role="group" aria-label="Globe controls">
                 <button type="button" aria-label="Zoom in" onClick={() => changeZoom(1.2)} disabled={zoom >= maxZoom}><Plus size={18} /></button>
                 <button type="button" aria-label="Zoom out" onClick={() => changeZoom(1 / 1.2)} disabled={zoom <= minZoom}><Minus size={18} /></button>
-                <button type="button" aria-label="Reset globe view" onClick={() => {
-                    onPreview(null)
-                    onCameraChange(initialCamera)
-                }}><RotateCcw size={17} /></button>
+                <button type="button" aria-label="Reset globe view" onClick={onReset}><RotateCcw size={17} /></button>
             </div>
             <p className={styles.gestures}>Drag to rotate <span>·</span> Scroll to zoom</p>
         </section>
