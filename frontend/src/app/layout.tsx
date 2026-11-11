@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { isPreview, siteName, siteUrl } from "@/lib/site-metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,10 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: siteName,
-  icons: { apple: "/brand/mark.png" },
-  robots: isPreview ? { index: false } : undefined,
+  title: "SafeTrip IQ",
+  description: "Travel safety information and cultural insights for destinations worldwide.",
 };
 
 export default function RootLayout({
