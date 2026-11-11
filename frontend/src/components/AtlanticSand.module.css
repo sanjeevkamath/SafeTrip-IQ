@@ -21,12 +21,3 @@
   font-family: Manrope, Arial, sans-serif;
   color-scheme: dark;
 }
-
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.wordmarkAccent { color: var(--sand); }

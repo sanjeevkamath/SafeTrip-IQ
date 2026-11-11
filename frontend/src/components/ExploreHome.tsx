@@ -7,7 +7,6 @@ import { ArrowRight } from 'lucide-react'
 import { featuredDestinations, initialCamera, type Destination, type GlobeCamera, type WorldGeometry } from '@/lib/explore'
 import RefreshStatus from './RefreshStatus'
 import CountryFlag from './CountryFlag'
-import BrandWordmark from './BrandWordmark'
 import SearchBar from './SearchBar'
 import WorldMap from './WorldMap'
 import styles from './ExploreHome.module.css'
@@ -80,7 +79,7 @@ export default function ExploreHome() {
         <main className={`${palette.theme} ${styles.home}`}>
             <header className={styles.brand}>
                 <button type="button" aria-label="SafeTrip IQ, reset view" onClick={resetView}>
-                    <BrandWordmark />
+                    SafeTrip <span>IQ</span>
                 </button>
             </header>
             <div className={styles.rail}>
@@ -140,7 +139,6 @@ export default function ExploreHome() {
                     {!searchOpen && <p className={styles.hoverHelp}>Hover to preview. Click to pin. Double-click for the guide.</p>}
                     {catalogueFailed && <p className={styles.overdue} role="alert">Country scores are temporarily unavailable.</p>}
                     <RefreshStatus />
-                    <Link href="/countries" className={styles.directoryLink}>All country guides</Link>
                 </div>
             </div>
             <WorldMap geometry={geometry} failed={geometryFailed} camera={camera} onCameraChange={setCamera}
