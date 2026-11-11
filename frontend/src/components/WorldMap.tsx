@@ -9,11 +9,17 @@ import styles from './ExploreHome.module.css'
 const size = 1040
 const center = size / 2
 const radius = 488
+const minZoom = 0.8
 const maxZoom = 2.5
 const atlanticLabels = new Set(['ISL', 'NOR', 'GBR', 'FRA', 'PRT', 'TUR', 'MAR', 'DZA', 'EGY', 'NGA', 'BRA'])
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
-type Drag = { id: number; x: number; y: number; moved: boolean; start: GlobeCamera }
+type Drag = { id: number; x: number; y: number; moved: boolean; start: GlobeCamera; degreesPerPixel: number }
+
+function zoomCamera(camera: GlobeCamera, factor: number): GlobeCamera {
+    const zoom = clamp(camera.zoom * factor, minZoom, maxZoom)
+    return zoom === camera.zoom ? camera : { ...camera, zoom }
+}
 
 export default function WorldMap({ geometry, failed, camera, onCameraChange, active, onPreview, onSelect, onLeaveGlobe, onOpenCountry, countries }: {
     geometry?: WorldGeometry
@@ -27,7 +33,7 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
     onOpenCountry: (iso3: string) => void
     countries: Map<string, Destination>
 }) {
-    const surface = useRef<SVGSVGElement>(null)
+    const surface = useRef<HTMLDivElement>(null)
     const drag = useRef<Drag | null>(null)
     const suppressClick = useRef(false)
     const [surfaceWidth, setSurfaceWidth] = useState(size)
@@ -37,21 +43,22 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
     const labelHeight = Math.max(26, labelSize * 1.8)
 
     useEffect(() => {
-        const svg = surface.current
-        if (!svg) return
+        const viewport = surface.current
+        if (!viewport) return
         const observer = new ResizeObserver(([entry]) => {
             if (entry.contentRect.width) setSurfaceWidth(entry.contentRect.width)
         })
-        observer.observe(svg)
-        function onWheel(event: WheelEvent) {
+        observer.observe(viewport)
+        const onWheel = (event: WheelEvent) => {
+            if (!event.deltaY || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return
             event.preventDefault()
-            const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY
-            onCameraChange(previous => ({ ...previous, zoom: clamp(previous.zoom * Math.exp(-delta * 0.0016), 1, maxZoom) }))
+            const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1
+            onCameraChange(previous => zoomCamera(previous, Math.exp(-event.deltaY * unit * 0.0016)))
         }
-        svg.addEventListener('wheel', onWheel, { passive: false })
+        viewport.addEventListener('wheel', onWheel, { passive: false })
         return () => {
             observer.disconnect()
-            svg.removeEventListener('wheel', onWheel)
+            viewport.removeEventListener('wheel', onWheel)
         }
     }, [onCameraChange])
 
@@ -93,13 +100,18 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
         return placed
     }, [active, atHome, countries, labelHeight, labelSize, latitude, longitude, projection, shapes, zoom])
 
-    function startDrag(event: PointerEvent<SVGSVGElement>) {
+    function startDrag(event: PointerEvent<HTMLDivElement>) {
         if (!event.isPrimary || event.button !== 0) return
+        const width = event.currentTarget.getBoundingClientRect().width
+        if (!width) return
         suppressClick.current = false
-        drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, start: camera, moved: false }
+        drag.current = {
+            id: event.pointerId, x: event.clientX, y: event.clientY, start: camera, moved: false,
+            degreesPerPixel: 112 / (width * zoom),
+        }
     }
 
-    function moveDrag(event: PointerEvent<SVGSVGElement>) {
+    function moveDrag(event: PointerEvent<HTMLDivElement>) {
         const current = drag.current
         if (!current || event.pointerId !== current.id) return
         const dx = event.clientX - current.x
@@ -111,90 +123,94 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
             onPreview(null)
             event.currentTarget.setPointerCapture(event.pointerId)
         }
-        const degreesPerPixel = 112 / (event.currentTarget.clientWidth * current.start.zoom)
-        onCameraChange({
-            ...current.start,
-            longitude: current.start.longitude - dx * degreesPerPixel,
-            latitude: clamp(current.start.latitude + dy * degreesPerPixel, -85, 85),
-        })
+        onCameraChange(previous => ({
+            ...previous,
+            longitude: current.start.longitude - dx * current.degreesPerPixel,
+            latitude: clamp(current.start.latitude + dy * current.degreesPerPixel, -85, 85),
+        }))
     }
 
-    function finishDrag(event: PointerEvent<SVGSVGElement>) {
+    function finishDrag(event: PointerEvent<HTMLDivElement>) {
         if (drag.current?.id === event.pointerId) drag.current = null
     }
 
     function changeZoom(factor: number) {
-        onCameraChange(previous => ({ ...previous, zoom: clamp(previous.zoom * factor, 1, maxZoom) }))
+        onCameraChange(previous => zoomCamera(previous, factor))
     }
 
     function showPreview(iso3: string, pointerType: string) {
-        if (pointerType === 'mouse' && !drag.current?.moved) onPreview(iso3)
+        if (pointerType === 'mouse' && !drag.current) onPreview(iso3)
     }
 
     return (
         <section className={styles.map} aria-label="Explore the globe">
-            <svg ref={surface} viewBox={`0 0 ${size} ${size}`} className={styles.globe}
-                role="group" aria-label="World globe. Use arrow keys to rotate." tabIndex={0}
+            <div ref={surface} className={styles.globeSurface}
                 onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
+                onLostPointerCapture={finishDrag}
+                onDragStart={event => event.preventDefault()}
                 onPointerLeave={event => {
                     if (drag.current?.moved) return
                     finishDrag(event)
                     onLeaveGlobe()
                 }}
-                onKeyDown={event => {
-                    if (event.target !== event.currentTarget) return
-                    const horizontal = event.key === 'ArrowLeft' ? -15 : event.key === 'ArrowRight' ? 15 : 0
-                    const vertical = event.key === 'ArrowUp' ? 15 : event.key === 'ArrowDown' ? -15 : 0
-                    if (!horizontal && !vertical) return
-                    event.preventDefault()
-                    onPreview(null)
-                    onCameraChange(previous => ({
-                        ...previous,
-                        longitude: previous.longitude + horizontal,
-                        latitude: clamp(previous.latitude + vertical, -85, 85),
-                    }))
-                }}
             >
-                <g transform={`translate(${center} ${center}) scale(${zoom}) translate(-${center} -${center})`}>
-                    <image href="/globe/atmosphere.svg" x={26} y={26} width={988} height={988} />
-                    <image href="/globe/ocean.svg" x={32} y={32} width={976} height={976} />
-                    {shapes.map(({ country, d }) => <path key={country.iso3} d={d} data-country={country.iso3}
-                        className={styles.land} data-active={country.iso3 === active}
-                        onPointerEnter={event => showPreview(country.iso3, event.pointerType)}
-                        onClick={() => { if (!suppressClick.current) onSelect(country.iso3) }}
-                        onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(country.iso3) }}
-                    />)}
-                    <g pointerEvents="none">
-                        <image href="/globe/shading.svg" x={32} y={32} width={976} height={976} />
-                        <image href="/globe/rim.svg" x={32} y={32} width={976} height={976} opacity={0.45} />
+                <svg viewBox={`0 0 ${size} ${size}`} className={styles.globe}
+                    role="group" aria-label="World globe. Use arrow keys to rotate." tabIndex={0}
+                    onKeyDown={event => {
+                        if (event.target !== event.currentTarget) return
+                        const horizontal = event.key === 'ArrowLeft' ? -15 : event.key === 'ArrowRight' ? 15 : 0
+                        const vertical = event.key === 'ArrowUp' ? 15 : event.key === 'ArrowDown' ? -15 : 0
+                        if (!horizontal && !vertical) return
+                        event.preventDefault()
+                        onPreview(null)
+                        onCameraChange(previous => ({
+                            ...previous,
+                            longitude: previous.longitude + horizontal,
+                            latitude: clamp(previous.latitude + vertical, -85, 85),
+                        }))
+                    }}
+                >
+                    <g transform={`translate(${center} ${center}) scale(${zoom}) translate(-${center} -${center})`}>
+                        <image href="/globe/atmosphere.svg" x={26} y={26} width={988} height={988} />
+                        <image href="/globe/ocean.svg" x={32} y={32} width={976} height={976} />
+                        {shapes.map(({ country, d }) => <path key={country.iso3} d={d} data-country={country.iso3}
+                            className={styles.land} data-active={country.iso3 === active}
+                            onPointerEnter={event => showPreview(country.iso3, event.pointerType)}
+                            onClick={() => { if (!suppressClick.current) onSelect(country.iso3) }}
+                            onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(country.iso3) }}
+                        />)}
+                        <g pointerEvents="none">
+                            <image href="/globe/shading.svg" x={32} y={32} width={976} height={976} />
+                            <image href="/globe/rim.svg" x={32} y={32} width={976} height={976} opacity={0.45} />
+                        </g>
                     </g>
-                </g>
-                {atHome && surfaceWidth >= 500 && <text x={242} y={452} className={styles.oceanLabel}>Atlantic Ocean</text>}
-                {labels.map(({ iso3, name, x, y, marker, pointX, halfWidth }) =>
-                    <g key={iso3} className={styles.countryLabel} role="button" tabIndex={0}
-                        aria-label={`Select ${name} on the globe`} data-active={iso3 === active || marker}
-                        onPointerEnter={event => showPreview(iso3, event.pointerType)}
-                        onFocus={() => onPreview(iso3)}
-                        onClick={() => { if (!suppressClick.current) onSelect(iso3) }}
-                        onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(iso3) }}
-                        onKeyDown={event => {
-                            if (event.key !== 'Enter' && event.key !== ' ') return
-                            event.preventDefault()
-                            onSelect(iso3)
-                        }}>
-                        <rect x={x - halfWidth} y={y - labelHeight / 2} width={halfWidth * 2} height={labelHeight} fill="transparent" />
-                        {marker && <image href="/globe/marker.svg" x={pointX - 3} y={y - 3} width={6} height={6} />}
-                        <text x={x} y={y} fontSize={labelSize} dominantBaseline="central" textAnchor="middle">{name}</text>
-                    </g>
-                )}
-                <circle className={styles.globeFocus} cx={center} cy={center} r={radius}
-                    vectorEffect="non-scaling-stroke" aria-hidden="true" />
-            </svg>
+                    {atHome && surfaceWidth >= 500 && <text x={242} y={452} className={styles.oceanLabel}>Atlantic Ocean</text>}
+                    {labels.map(({ iso3, name, x, y, marker, pointX, halfWidth }) =>
+                        <g key={iso3} className={styles.countryLabel} role="button" tabIndex={0}
+                            aria-label={`Select ${name} on the globe`} data-active={iso3 === active || marker}
+                            onPointerEnter={event => showPreview(iso3, event.pointerType)}
+                            onFocus={() => onPreview(iso3)}
+                            onClick={() => { if (!suppressClick.current) onSelect(iso3) }}
+                            onDoubleClick={() => { if (!suppressClick.current) onOpenCountry(iso3) }}
+                            onKeyDown={event => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return
+                                event.preventDefault()
+                                onSelect(iso3)
+                            }}>
+                            <rect x={x - halfWidth} y={y - labelHeight / 2} width={halfWidth * 2} height={labelHeight} fill="transparent" />
+                            {marker && <image href="/globe/marker.svg" x={pointX - 3} y={y - 3} width={6} height={6} />}
+                            <text x={x} y={y} fontSize={labelSize} dominantBaseline="central" textAnchor="middle">{name}</text>
+                        </g>
+                    )}
+                    <circle className={styles.globeFocus} cx={center} cy={center} r={radius}
+                        vectorEffect="non-scaling-stroke" aria-hidden="true" />
+                </svg>
+            </div>
             {failed && <p className={styles.mapMessage} role="alert">Map data is temporarily unavailable. You can still search for a country.</p>}
             {!failed && !geometry && <p className={styles.mapMessage} role="status">Loading the globe…</p>}
             <div className={styles.mapControls} role="group" aria-label="Globe controls">
                 <button type="button" aria-label="Zoom in" onClick={() => changeZoom(1.2)} disabled={zoom >= maxZoom}><Plus size={18} /></button>
-                <button type="button" aria-label="Zoom out" onClick={() => changeZoom(1 / 1.2)} disabled={zoom <= 1}><Minus size={18} /></button>
+                <button type="button" aria-label="Zoom out" onClick={() => changeZoom(1 / 1.2)} disabled={zoom <= minZoom}><Minus size={18} /></button>
                 <button type="button" aria-label="Reset globe view" onClick={() => {
                     onPreview(null)
                     onCameraChange(initialCamera)
