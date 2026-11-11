@@ -101,23 +101,16 @@ export default function ExploreHome() {
                             </div>
                             <div>
                                 <h3>SafeTrip score</h3>
-                                {data?.safe_trip_score != null ? <>
-                                    <p className={styles.score}><strong>{data.safe_trip_score.toFixed(1)}</strong> / 10</p>
-                                    <p className={styles.explanation}>Custom travel safety index.</p>
-                                </> : <p>{catalogue || catalogueFailed ? 'Score unavailable' : 'Checking score…'}</p>}
+                                {data?.safe_trip_score != null
+                                    ? <p className={styles.score}><strong>{data.safe_trip_score.toFixed(1)}</strong> / 10</p>
+                                    : <p>{catalogue || catalogueFailed ? 'Score unavailable' : 'Checking score…'}</p>}
                             </div>
-                            {data && <div>
-                                <h3>Official travel advice</h3>
-                                <p className={styles.explanation}>See the country guide for available US and UK guidance.</p>
-                            </div>}
                             {isActiveSelected ? <>
                                 {data && <Link href={`/country/${data.iso3}`} className={styles.guideLink}>
                                     View country guide <ArrowRight size={15} aria-hidden="true" />
                                 </Link>}
                                 <button type="button" className={styles.textAction} onClick={clearSelection}>Clear selection</button>
-                            </> : !selected && active && <button type="button" className={styles.textAction} onClick={() => selectCountry(active)}>
-                                Keep this preview open <ArrowRight size={15} aria-hidden="true" />
-                            </button>}
+                            </> : null}
                         </section>
                     ) : (
                         <section className={styles.discovery}>
@@ -136,14 +129,13 @@ export default function ExploreHome() {
                     ))}
                 </div>
                 <div className={styles.railFooter}>
-                    {!searchOpen && <p className={styles.hoverHelp}>Hover to preview. Click to pin. Double-click for the guide.</p>}
                     {catalogueFailed && <p className={styles.overdue} role="alert">Country scores are temporarily unavailable.</p>}
                     <RefreshStatus />
                 </div>
             </div>
             <WorldMap geometry={geometry} failed={geometryFailed} camera={camera} onCameraChange={setCamera}
                 active={active} onPreview={setHovered} onSelect={selectCountry}
-                onLeaveGlobe={() => { if (selected) setHovered(null) }}
+                onReset={resetView}
                 onOpenCountry={iso3 => {
                     if (countries.has(iso3) || searchDestination?.iso3 === iso3) router.push(`/country/${iso3}`)
                 }}

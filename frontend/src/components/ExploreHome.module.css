@@ -115,8 +115,7 @@
 .preview h2 { font-size: clamp(30px, 2.375vw, 40px); font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
 .preview h3 { font-size: 14px; font-weight: 700; }
 .preview p { margin-top: 5px; color: var(--muted); font-size: 15px; line-height: 1.45; }
-.preview .region, .preview .explanation { font-size: 13px; }
-.preview .region { margin: 0 0 6px; }
+.preview .region { margin: 0 0 6px; font-size: 13px; }
 .preview .score strong { margin-right: 3px; color: var(--text); font-size: 31px; font-weight: 800; }
 .guideLink, .textAction { display: inline-flex; align-items: center; gap: 8px; width: fit-content; }
 .guideLink {
@@ -132,9 +131,7 @@
 .textAction:hover { text-decoration: underline; }
 
 .railFooter { margin-top: auto; padding-top: 20px; }
-.freshness, .hoverHelp, .railFooter > [role='alert'] { color: var(--muted); font-size: 13px; line-height: 1.45; }
-.freshness { min-height: 75px; }
-.hoverHelp { margin-bottom: 21px; }
+.freshness, .railFooter > [role='alert'] { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .overdue, .railFooter > [role='alert'] { color: var(--sand); }
 .railFooter > [role='alert'] { margin-bottom: 8px; }
 
@@ -145,7 +142,7 @@
     left: 28%;
     right: 0;
 }
-.globe {
+.globeSurface {
     position: absolute;
     top: 2%;
     left: 50%;
@@ -156,7 +153,8 @@
     user-select: none;
     cursor: grab;
 }
-.globe:active { cursor: grabbing; }
+.globeSurface:active { cursor: grabbing; }
+.globe { display: block; width: 100%; height: 100%; }
 .globe:focus { outline: none; }
 .globeFocus {
     visibility: hidden;
@@ -175,6 +173,7 @@
 }
 .land[data-active='true'] { fill: var(--sand); stroke: var(--sand); }
 .countryLabel { fill: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.globeSurface:active :is(.land, .countryLabel) { cursor: grabbing; }
 .countryLabel:focus { outline: none; }
 .countryLabel:focus-visible text { text-decoration: underline; }
 .countryLabel[data-active='true'] { fill: var(--sand); }
@@ -237,15 +236,9 @@
     .featured button { min-height: 58px; }
     .preview { max-width: 480px; padding: 20px; }
     .railFooter { grid-row: 5; padding-top: 24px; }
-    .freshness { min-height: 0; }
-    .hoverHelp { display: none; }
     .map { grid-row: 3; position: relative; inset: auto; width: 100%; max-width: 620px; margin: 12px auto 0; }
-    .globe { position: relative; inset: auto; transform: none; display: block; width: 100%; }
+    .globeSurface { position: relative; inset: auto; transform: none; width: 100%; }
     .mapControls { right: 0; bottom: 3%; }
     .gestures { position: static; justify-content: center; font-size: 12px; margin-top: 3px; }
     .mapMessage { left: 15%; width: 65%; }
-}
-
-@media (pointer: coarse) {
-    .hoverHelp { display: none; }
 }
