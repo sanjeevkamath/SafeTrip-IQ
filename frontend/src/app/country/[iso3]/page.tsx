@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { cache } from 'react'
+import BrandWordmark from '@/components/BrandWordmark'
 import CountryFlag from '@/components/CountryFlag'
 import OfficialAdvisories, { advisorySourceLink } from '@/components/OfficialAdvisories'
 import SafetyScoreDetails from '@/components/SafetyScoreDetails'
@@ -8,6 +10,7 @@ import palette from '@/components/AtlanticSand.module.css'
 import { getGuideReference, guideItems, scorePresentation } from '@/lib/country-guide'
 import { getCountryDetails, getCountryAdvisories } from '@/lib/server/queries'
 import type { Culture } from '@/lib/server/types'
+import { pageMetadata, siteName } from '@/lib/site-metadata'
 
 interface PageProps {
     params: Promise<{ iso3: string }>
@@ -16,6 +19,20 @@ interface PageProps {
 export const dynamic = 'force-dynamic'
 
 const ukAdviceDirectory = 'https://www.gov.uk/foreign-travel-advice'
+const readCountry = cache(getCountryDetails)
+
+export async function generateMetadata({ params }: PageProps) {
+    const { iso3 } = await params
+    const details = await readCountry(iso3)
+    if (!details) notFound()
+
+    const { country } = details
+    return pageMetadata(
+        `${country.name} Travel Safety Guide | ${siteName}`,
+        `Plan your trip to ${country.name} with official travel advisory links, entry requirements, and local travel essentials.`,
+        `/country/${country.iso3}`,
+    )
+}
 
 function GuideLink({ href, children }: { href: string; children: string }) {
     return <a className={styles.sourceLink} href={href} target="_blank" rel="noopener noreferrer">
@@ -61,7 +78,7 @@ function LocalDetails({ culture, remainingNotes }: { culture: Culture; remaining
 
 export default async function CountryPage({ params }: PageProps) {
     const { iso3 } = await params
-    const details = await getCountryDetails(iso3)
+    const details = await readCountry(iso3)
     if (!details) notFound()
 
     const { country, score, culture } = details
@@ -86,7 +103,7 @@ export default async function CountryPage({ params }: PageProps) {
         <main className={`${palette.theme} ${styles.guide}`}>
             <div className={styles.shell}>
                 <header className={styles.header}>
-                    <Link href="/" className={styles.brand}>SafeTrip <span>IQ</span></Link>
+                    <Link href="/" className={styles.brand}><BrandWordmark /></Link>
                     <Link href="/" className={styles.sourceLink} aria-label="Back to globe">
                         <span aria-hidden="true">← </span><span className={styles.backFull}>Back to globe</span>
                         <span className={styles.backShort}>Globe</span>

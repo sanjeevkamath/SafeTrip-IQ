@@ -1,0 +1,22 @@
+.title {
+    margin-block: 40px 24px;
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+}
+
+.list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 4px 24px;
+}
+
+.list a {
+    display: block;
+    padding-block: 8px;
+}
+
+.list a:hover {
+    color: var(--sand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}

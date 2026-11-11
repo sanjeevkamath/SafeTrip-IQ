@@ -20,7 +20,6 @@
     font-weight: 800;
     line-height: 1.45;
 }
-.brand span { color: var(--sand); }
 .brand button { cursor: pointer; }
 
 .rail {
@@ -132,6 +131,8 @@
 .textAction:hover { text-decoration: underline; }
 
 .railFooter { margin-top: auto; padding-top: 20px; }
+.directoryLink { display: inline-block; margin-top: 8px; color: var(--sand); font-size: 13px; }
+.directoryLink:hover { text-decoration: underline; text-underline-offset: 3px; }
 .freshness, .hoverHelp, .railFooter > [role='alert'] { color: var(--muted); font-size: 13px; line-height: 1.45; }
 .freshness { min-height: 75px; }
 .hoverHelp { margin-bottom: 21px; }
