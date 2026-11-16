@@ -207,6 +207,11 @@
     font-size: 13px;
     pointer-events: none;
 }
+.touchHint { display: none; }
+@media (pointer: coarse) {
+    .wheelHint { display: none; }
+    .touchHint { display: inline; }
+}
 .mapMessage {
     position: absolute;
     left: 27%;

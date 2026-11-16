@@ -1,6 +1,6 @@
 import { before, after, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { chromium } from 'playwright'
+import { chromium, devices } from 'playwright'
 
 const base = process.env.SAFETRIP_BROWSER_URL ?? 'http://127.0.0.1:3001'
 if (!['127.0.0.1', 'localhost'].includes(new URL(base).hostname)) throw new Error('Browser checks require a local fixture server.')
@@ -8,8 +8,8 @@ let browser
 before(async () => { browser = await chromium.launch({ headless: true }) })
 after(async () => { await browser?.close() })
 
-async function withPage(run) {
-    const context = await browser.newContext()
+async function withPage(run, options) {
+    const context = await browser.newContext(options)
     try {
         await context.route('**/*', route => {
             const url = route.request().url()
@@ -92,6 +92,40 @@ test('globe drags, zooms in both directions, previews a country, and pins the pr
     await preview.waitFor({ state: 'hidden' })
     assert.equal(await highlights.count(), 0)
 }))
+
+test('touch swipe rotates, pinch zooms in both directions, and a tap still selects', { timeout: 30000 }, async () => withPage(async page => {
+    await page.goto(base)
+    const globe = page.getByRole('group', { name: /^World globe/ })
+    const morocco = globe.locator('path[data-country="MAR"]')
+    await morocco.waitFor()
+    const bounds = await globe.boundingBox()
+    const x = Math.round(bounds.x + bounds.width / 2)
+    const y = Math.round(bounds.y + bounds.height / 2)
+    const cdp = await page.context().newCDPSession(page)
+    const touch = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
+    const moroccoX = async () => (await morocco.boundingBox()).x
+    const before = await moroccoX()
+    await touch('touchStart', [{ x, y }])
+    await touch('touchMove', [{ x: x + 32, y }])
+    await touch('touchEnd', [])
+    assert.ok(await moroccoX() - before > 35, 'a short swipe should visibly move the map')
+
+    const layer = globe.locator('g[transform]').first()
+    const zoom = async () => Number((await layer.getAttribute('transform')).match(/scale\(([^)]+)\)/)[1])
+    const pair = half => [{ x: x - half, y, id: 1 }, { x: x + half, y, id: 2 }]
+    await touch('touchStart', pair(35))
+    for (const half of [45, 55, 70]) await touch('touchMove', pair(half))
+    assert.ok(Math.abs(await zoom() - 2) < 0.01)
+    for (const half of [55, 45, 35]) await touch('touchMove', pair(half))
+    await touch('touchEnd', [])
+    assert.ok(Math.abs(await zoom() - 1) < 0.01)
+    const preview = page.getByRole('region', { name: 'Country preview' })
+    assert.equal(await preview.count(), 0)
+
+    await page.getByRole('button', { name: 'Reset globe view' }).tap()
+    await globe.getByRole('button', { name: 'Select Portugal on the globe' }).tap()
+    await preview.getByRole('heading', { name: 'Portugal', exact: true }).waitFor()
+}, devices['iPhone 13']))
 
 test('clustering-only country has no BERT score; unknown country is 404', { timeout: 30000 }, async () => withPage(async page => {
     await page.goto(base + '/country/USA')
