@@ -15,6 +15,7 @@ const atlanticLabels = new Set(['ISL', 'NOR', 'GBR', 'FRA', 'PRT', 'TUR', 'MAR',
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 type Drag = { id: number; x: number; y: number; moved: boolean; start: GlobeCamera; degreesPerPixel: number }
+type TouchPoint = { x: number; y: number }
 
 function zoomCamera(camera: GlobeCamera, factor: number): GlobeCamera {
     const zoom = clamp(camera.zoom * factor, minZoom, maxZoom)
@@ -35,6 +36,7 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
 }) {
     const surface = useRef<HTMLDivElement>(null)
     const drag = useRef<Drag | null>(null)
+    const touchPoints = useRef(new Map<number, TouchPoint>())
     const suppressClick = useRef(false)
     const [surfaceWidth, setSurfaceWidth] = useState(size)
     const { longitude, latitude, zoom } = camera
@@ -100,6 +102,18 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
     }, [active, atHome, countries, labelHeight, labelSize, latitude, longitude, projection, shapes, zoom])
 
     function startDrag(event: PointerEvent<HTMLDivElement>) {
+        if (event.pointerType === 'touch') {
+            const points = touchPoints.current
+            if (points.size === 2) return
+            if (points.size === 0) suppressClick.current = false
+            points.set(event.pointerId, { x: event.clientX, y: event.clientY })
+            if (points.size === 2) {
+                suppressClick.current = true
+                onPreview(null)
+                for (const id of points.keys()) event.currentTarget.setPointerCapture(id)
+            }
+            return
+        }
         if (!event.isPrimary || event.button !== 0) return
         const width = event.currentTarget.getBoundingClientRect().width
         if (!width) return
@@ -111,6 +125,10 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
     }
 
     function moveDrag(event: PointerEvent<HTMLDivElement>) {
+        if (event.pointerType === 'touch') {
+            moveTouch(event)
+            return
+        }
         const current = drag.current
         if (!current || event.pointerId !== current.id) return
         const dx = event.clientX - current.x
@@ -129,7 +147,44 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
         }))
     }
 
+    function moveTouch(event: PointerEvent<HTMLDivElement>) {
+        const points = touchPoints.current
+        const point = points.get(event.pointerId)
+        if (!point) return
+        const { clientX: x, clientY: y } = event
+        const dx = x - point.x
+        const dy = y - point.y
+        if (!suppressClick.current) {
+            if (Math.hypot(dx, dy) < 4) return
+            suppressClick.current = true
+            onPreview(null)
+            event.currentTarget.setPointerCapture(event.pointerId)
+        }
+        points.set(event.pointerId, { x, y })
+
+        if (points.size === 2) {
+            const other = [...points].find(([id]) => id !== event.pointerId)?.[1]
+            if (!other) return
+            const previousSpan = Math.max(1, Math.hypot(point.x - other.x, point.y - other.y))
+            const nextSpan = Math.max(1, Math.hypot(x - other.x, y - other.y))
+            changeZoom(nextSpan / previousSpan)
+            return
+        }
+
+        const width = event.currentTarget.clientWidth
+        if (!width) return
+        onCameraChange(previous => {
+            const degreesPerPixel = 200 / (width * previous.zoom)
+            return {
+                ...previous,
+                longitude: previous.longitude - dx * degreesPerPixel,
+                latitude: clamp(previous.latitude + dy * degreesPerPixel, -85, 85),
+            }
+        })
+    }
+
     function finishDrag(event: PointerEvent<HTMLDivElement>) {
+        if (event.pointerType === 'touch') touchPoints.current.delete(event.pointerId)
         if (drag.current?.id === event.pointerId) drag.current = null
     }
 
@@ -141,14 +196,16 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
         <section className={styles.map} aria-label="Explore the globe">
             <div ref={surface} className={styles.globeSurface}
                 onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={finishDrag}
-                onLostPointerCapture={finishDrag}
+                onLostPointerCapture={event => {
+                    if (event.target === event.currentTarget) finishDrag(event)
+                }}
                 onDragStart={event => event.preventDefault()}
                 onPointerOver={event => {
                     if (event.pointerType !== 'mouse' || drag.current || !(event.target instanceof Element)) return
                     onPreview(event.target.closest('[data-country]')?.getAttribute('data-country') ?? null)
                 }}
                 onPointerLeave={event => {
-                    if (drag.current?.moved) return
+                    if (event.pointerType === 'touch' || drag.current?.moved) return
                     finishDrag(event)
                     onPreview(null)
                 }}
@@ -212,7 +269,11 @@ export default function WorldMap({ geometry, failed, camera, onCameraChange, act
                 <button type="button" aria-label="Zoom out" onClick={() => changeZoom(1 / 1.2)} disabled={zoom <= minZoom}><Minus size={18} /></button>
                 <button type="button" aria-label="Reset globe view" onClick={onReset}><RotateCcw size={17} /></button>
             </div>
-            <p className={styles.gestures}>Drag to rotate <span>·</span> Scroll to zoom</p>
+            <p className={styles.gestures}>
+                Drag to rotate <span aria-hidden="true">·</span>
+                <span className={styles.wheelHint}>Scroll to zoom</span>
+                <span className={styles.touchHint}>Pinch to zoom</span>
+            </p>
         </section>
     )
 }
